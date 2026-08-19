@@ -179,6 +179,8 @@ const SYSTEM = `You write a short weekly column for an eight-person college foot
 
 THE POOL: ${ROSTER.map(p => p.name).join(', ')}. Each drafted six teams before the season and scores off the AP Top 25 weekly: 25 pts for No.1, 20 for Nos.2-6, 15 for 7-10, 10 for 11-15, 5 for 16-20, 3 for 21-24, 2 for No.25, 2 for a top-3 also-receiving-votes team. $200 each, $1,600 pot, paid on the final poll before the playoffs (40%) and after (60%).
 
+THE SPREAD HAS NOTHING TO DO WITH POINTS. Pool points come from AP poll position. Covering a spread earns nobody anything; failing to cover costs nobody anything. The line is only evidence about how good a team is. Never write that a margin, a cover, or a blowout wins or loses pool points.
+
 WHAT THE LINE MEANS — a line like "ND -20.5" means Notre Dame is FAVOURED and must win by more than 20.5. The favourite is never "facing a hole", "in a deficit", "an underdog", or "climbing back"; that is the other team's position. A favourite can only "fail to cover", "blow a cushion", or "win without covering". Get this backwards and the blurb is thrown away.
 
 HOW SCORING ACTUALLY WORKS — you have been getting this wrong. Points come from where a team sits in the AP poll, NOT from winning a game. Winning a game adds nothing; it defends a team's existing ranking. Losing subtracts nothing directly; it risks the team sliding in next week's poll, and the slide is where points are lost. So never write that someone "gains 15 points" by covering, or "collects" points by winning. The correct framing is exposure: the owner of a highly ranked team has points to LOSE, and the owner of an unranked team has nothing to lose and something to gain only if their team climbs into the poll.
@@ -350,9 +352,29 @@ function directionProblem(blurb, facts) {
   return null;
 }
 
+/* Spread/points conflation. Pool points come from AP poll position and move
+   only when the poll updates — never because a margin was covered. So a
+   sentence that makes a points quantity depend on covering, the spread, or
+   the margin of victory is describing a mechanic that does not exist.
+   Losing outright legitimately risks a poll slide, so outcome words
+   (stumbles, loses, upset) are deliberately NOT margin language. */
+const MARGIN_LANG  = /\b(cover(s|ed|ing)?|spread|blowout|margin|point line|by more than)\b/i;
+const POINTS_NOUN  = /\b(stake|draft|haul|points?|pts|payday|value)\b/i;
+const CAUSAL_VERB  = /\b(wipes?|wiped|erases?|gains?|collects?|earns?|banks?|boosts?|vanish(es|ed)?|evaporates?|bleeds?|hangs? on|rides? on|depends? on|hinges? on|protects?|shields?|secures?|saves?)\b/i;
+
+function conflationProblem(blurb) {
+  for (const sentence of blurb.split(/(?<=[.!?])\s+/)) {
+    if (MARGIN_LANG.test(sentence) && POINTS_NOUN.test(sentence) && CAUSAL_VERB.test(sentence))
+      return 'ties pool points to covering the spread (points come from poll position, not margin)';
+  }
+  return null;
+}
+
 function validate(blurb, facts) {
   const dir = directionProblem(blurb, facts);
   if (dir) return dir;
+  const conf = conflationProblem(blurb);
+  if (conf) return conf;
   const low = blurb.toLowerCase();
   const hit = BANNED.find(b => new RegExp(`\\b${b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(low));
   if (hit) return `banned phrase: "${hit}"`;
@@ -377,6 +399,7 @@ async function verify(blurbs, byId) {
 
 Mark ok=false if the blurb states anything the facts do not support. Specifically catch:
 - treating a win as earning points or a loss as deducting them. Points come from AP poll position only; a win defends a ranking, a loss risks a slide in next week's poll. "Gains 15 points by covering" is wrong.
+- tying pool points to the spread or to covering. Points come from AP poll position and change only when the poll updates. "A 20-point draft hangs on a 20.5-point spread" and "anything less than a blowout wipes his stake" are both wrong. Losing the GAME risking a poll slide is fine; covering is irrelevant to points.
 - favourite/underdog inversion: in "ND -20.5" Notre Dame is favoured. Describing the favourite as facing a hole, deficit, or upset climb is wrong.
 - inverting exposure: the owner of the HIGHER-ranked, higher-point team has more to lose; the owner of a 0-point team is the one risking nothing
 - ANY claim about the pool standings or the overall race (who leads, trails, is ahead, is winning, is collecting the pot) — the writer was not given standings, so any such claim is unsupported
