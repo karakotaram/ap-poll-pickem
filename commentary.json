@@ -1,13 +1,11 @@
 {
-  "generated": "2026-08-19T19:13:29.789Z",
+  "generated": "2026-08-19T19:14:40.980Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "Ty’s Clemson pick is exposed to a possible two‑point hit as LSU opens as the -9.5 favorite. Karan’s Tigers sit comfortably with ten points to defend.",
-    "401858212": "Merc rolls the house money at Doak Campbell, while Jim’s SMU draft has five points on the line. The -2.5 line gives Jim a slim edge, but the market still sees a close fight.",
-    "401858432": "Jim’s weekend is a straight 25‑point grab. Ball State brings no owner into the mix, so the entire stake rides on OSU.",
-    "401858433": "Ty imagined a top‑tier pick, yet his Broncos land a full tier below John’s Ducks. The -24.5 line underscores how far the market believes the gap stretches."
+    "401856660": "Karan is staring at a ten‑point exposure, the home Tigers being a nine‑point favorite. Ty’s Clemson draft only carries two points, so the Orange can’t dent anyone’s pool no matter the spread.",
+    "401858432": "Jim’s weekend is a pure points grab; Ohio State’s top spot guarantees twenty‑five on the line. No other owner has a claim on that pool chunk."
   }
 }
