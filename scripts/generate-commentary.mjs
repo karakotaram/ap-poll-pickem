@@ -247,7 +247,19 @@ async function callGroq(jsonMode) {
   });
   if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const d = await r.json();
-  return d.choices?.[0]?.message?.content || '';
+  const choice = d.choices?.[0] || {};
+  const msg = choice.message || {};
+  const content = msg.content || '';
+  if (!content.trim()) {
+    // Reasoning models can burn the whole budget before emitting content, or
+    // put the text somewhere other than message.content. Say which.
+    console.error(`empty content — finish_reason=${choice.finish_reason}` +
+      ` usage=${JSON.stringify(d.usage || {})}` +
+      ` fields=${Object.keys(msg).join(',')}` +
+      (msg.reasoning ? ` reasoning[0:200]=${String(msg.reasoning).slice(0, 200)}` : ''));
+  }
+  // Some models return the payload in `reasoning` when content comes back blank.
+  return content.trim() ? content : (msg.reasoning || '');
 }
 
 // Pull the first balanced {...} out of a free-text reply.
