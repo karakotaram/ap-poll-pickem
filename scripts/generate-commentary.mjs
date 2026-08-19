@@ -392,8 +392,17 @@ const PLACEHOLDER = /^(\.{2,}|…+|todo|tbd|n\/?a|lorem\b.*|<.*>|\{.*\}|blurb|st
 const GARBLED = [
   /\brolls? the night\b/i,
   /\brolls? the dice on the night\b/i,
-  /\bhouse money on the line\b/i,
 ];
+
+/* The model reliably mangles this one idiom ("rolls the night with house
+   money", "rolls the house money"). The valid forms all put a preposition or
+   a play-verb immediately before it, so check that rather than chase variants. */
+function houseMoneyProblem(text) {
+  if (!/house money/i.test(text)) return null;
+  return /\b(with|on|playing|plays|play|played)\s+house money\b/i.test(text)
+    ? null
+    : 'mangled "house money" idiom (use "playing with house money" / "on house money")';
+}
 
 /* qwen echoed the "..." from the prompt's format example and every other
    check passed it — an ellipsis has no numbers to verify and no claims to
@@ -403,6 +412,8 @@ function substanceProblem(blurb) {
   if (PLACEHOLDER.test(t)) return 'placeholder text, not a blurb';
   const g = GARBLED.find(re => re.test(t));
   if (g) return `garbled idiom: ${g.source}`;
+  const hm = houseMoneyProblem(t);
+  if (hm) return hm;
   const words = t.split(/\s+/).filter(w => /[A-Za-z]/.test(w));
   if (words.length < 8) return `too short (${words.length} words)`;
   if (t.replace(/[^A-Za-z]/g, '').length < 30) return 'almost no prose';
