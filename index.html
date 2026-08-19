@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="College football AP Poll pick'em pool standings and payouts.">
+<title>AP Poll Pick'em</title>
+<style>
+:root{
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb; --surface-2:#f2f1ed;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+  --good:#006300; --bad:#d03b3b; --warn:#fab219;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --shadow:0 1px 2px rgba(11,11,11,.05), 0 4px 12px rgba(11,11,11,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232322;
+    --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --good:#0ca30c; --bad:#e66767;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232322;
+  --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+  --good:#0ca30c; --bad:#e66767;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--plane); color:var(--ink);
+  font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased; padding:0 0 64px;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+/* ---------- header ---------- */
+header{padding:28px 0 20px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.hrow{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+h1{font-size:26px;font-weight:680;letter-spacing:-.02em;line-height:1.15}
+.sub{color:var(--ink-2);font-size:13.5px;margin-top:3px}
+.hspace{flex:1 1 auto}
+.ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,.btn{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;
+}
+select:hover,.btn:hover{background:var(--surface-2)}
+.btn.icon{width:34px;padding:0;height:33px;display:grid;place-items:center;font-size:15px}
+
+/* ---------- leader banner ---------- */
+.banner{
+  display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px 18px;margin-bottom:20px;box-shadow:var(--shadow)
+}
+.bstat{display:flex;flex-direction:column;gap:1px;padding-right:18px}
+.bstat + .bstat{border-left:1px solid var(--border);padding-left:18px}
+.blabel{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.bval{font-size:21px;font-weight:660;letter-spacing:-.01em}
+.bval.sm{font-size:15px;font-weight:600}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:22px;overflow-x:auto}
+.tab{
+  font:inherit;font-size:14px;font-weight:550;color:var(--ink-2);background:none;border:none;
+  padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;margin-bottom:-1px
+}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--s1)}
+.panel[hidden]{display:none}
+
+/* ---------- cards & tables ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.card + .card{margin-top:18px}
+.chead{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ctitle{font-size:15px;font-weight:620}
+.cnote{font-size:12.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+th{
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);font-weight:600;padding:9px 14px;border-bottom:1px solid var(--border);white-space:nowrap
+}
+td{padding:10px 14px;border-bottom:1px solid var(--grid);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* standings */
+.strow{cursor:pointer}
+.strow:hover{background:var(--surface-2)}
+.place{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600;width:34px}
+.place.p1{color:var(--ink)}
+.pname{display:flex;align-items:center;gap:9px;font-weight:600}
+.swatch{width:9px;height:9px;border-radius:2px;flex:none}
+.pts{font-size:17px;font-weight:660;font-variant-numeric:tabular-nums}
+.delta{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.delta.up{color:var(--good)} .delta.dn{color:var(--bad)}
+.chev{color:var(--muted);font-size:11px;width:14px;display:inline-block;transition:transform .15s}
+.strow.open .chev{transform:rotate(90deg)}
+.detail td{background:var(--surface-2);padding:4px 14px 14px}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:7px;padding-top:10px}
+.pick{
+  display:flex;align-items:center;gap:9px;background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px
+}
+.pick.zero{opacity:.55}
+.prank{
+  font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--surface);
+  background:var(--ink-2);border-radius:4px;padding:2px 5px;min-width:24px;text-align:center;flex:none
+}
+.prank.rv{background:var(--muted)}
+.prank.none{background:transparent;color:var(--muted);border:1px dashed var(--axis)}
+.pteam{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ppts{font-variant-numeric:tabular-nums;font-weight:640;color:var(--ink-2);flex:none}
+
+/* payouts */
+.paygrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.pill{
+  display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2.5px 7px;border-radius:999px;border:1px solid var(--border);color:var(--ink-2);background:var(--surface-2)
+}
+.pill.live{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.pill.locked{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.money{font-variant-numeric:tabular-nums;font-weight:640}
+.money.pos{color:var(--good)} .money.neg{color:var(--bad)}
+.medal{width:22px;display:inline-block;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600}
+
+/* chart */
+.chartbox{padding:16px 8px 8px;position:relative}
+svg.chart{display:block;width:100%;height:auto;overflow:visible}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:2px 18px 16px}
+.lgi{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);cursor:pointer;user-select:none}
+.lgi.off{opacity:.35}
+.lgsw{width:11px;height:3px;border-radius:2px;flex:none}
+.tip{
+  position:absolute;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  box-shadow:var(--shadow);padding:9px 11px;font-size:12.5px;min-width:150px;z-index:5
+}
+.tip b{display:block;font-size:12px;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.tiprow{display:flex;align-items:center;gap:7px;line-height:1.7}
+.tiprow .nm{flex:1;color:var(--ink-2)}
+.tiprow .vl{font-variant-numeric:tabular-nums;font-weight:640}
+
+/* board */
+.boardgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.brow{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--grid);font-size:13.5px}
+.brow:last-child{border-bottom:none}
+.brank{font-variant-numeric:tabular-nums;font-weight:660;color:var(--muted);width:26px;flex:none;text-align:right}
+.bteam{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.owner{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);flex:none}
+.owner.free{color:var(--muted);font-style:italic}
+.bpts{font-variant-numeric:tabular-nums;font-weight:640;width:30px;text-align:right;flex:none;color:var(--ink-2)}
+
+/* misc */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;padding:14px 18px}
+.rule{background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--ink-2)}
+.rule b{display:block;font-size:15px;color:var(--ink);font-weight:660;font-variant-numeric:tabular-nums}
+.status{font-size:12.5px;color:var(--muted);padding:10px 0 0}
+.err{color:var(--bad)}
+.empty{padding:26px 18px;color:var(--muted);font-size:13.5px;text-align:center}
+.tblwrap{overflow-x:auto}
+@media (max-width:560px){
+  .bstat{padding-right:12px} .bstat + .bstat{padding-left:12px}
+  h1{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="hrow">
+    <div>
+      <h1>AP Poll Pick&rsquo;em</h1>
+      <div class="sub" id="subtitle">8-team pool &middot; loading&hellip;</div>
+    </div>
+    <div class="hspace"></div>
+    <div class="ctrls">
+      <select id="pollSel" aria-label="Select poll"></select>
+      <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<div class="banner" id="banner"></div>
+
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" aria-selected="true"  data-p="standings">Standings</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="payouts">Payouts</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="history">History</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="board">Big Board</button>
+</div>
+
+<section class="panel" id="p-standings"></section>
+<section class="panel" id="p-payouts" hidden></section>
+<section class="panel" id="p-history" hidden></section>
+<section class="panel" id="p-board" hidden></section>
+
+<div class="status" id="status"></div>
+</div>
+
+<script id="payload" type="application/json">{"teams":{"2000":["Abilene Christian","ACU","592d82"],"2001":["Adams State","ADSU","000000"],"2003":["Adrian","ADR","000000"],"2005":["Air Force","AF","003594"],"2006":["Akron","AKR","041e42"],"2010":["Alabama A&M","AAMU","790000"],"333":["Alabama","ALA","9e1b32"],"2011":["Alabama State","ALST","e9a900"],"2013":["Albany State","ABSU","000000"],"2790":["Albion","ALBI","000000"],"2015":["Albright","ALBR","c82e48"],"2016":["Alcorn State","ALCN","4b0058"],"365":["Alfred","ALFR","000000"],"3162":["Alfred State","AFST","000000"],"2018":["Allegheny","ALLG","000000"],"2019":["Allen","ALNU",null],"2800":["Alma","ALMA","000000"],"111674":["Alvernia","ALVR",null],"2022":["American International","AIC","000000"],"7":["Amherst","AMH","3f1f69"],"2023":["Anderson (IN)","ANIN","000000"],"129469":["Anderson (SC)","ANSC",null],"134002":["Andrew","AND",null],"2025":["Angelo State","AGSU","000000"],"2026":["App State","APP","000000"],"3111":["Apprentice School","APPRE","000000"],"9":["Arizona State","ASU","ffc627"],"12":["Arizona","ARIZ","cc0033"],"124386":["Arkansas Baptist","ARBA",null],"2028":["Arkansas Monticello","UAM","000000"],"8":["Arkansas","ARK","a32136"],"2032":["Arkansas State","ARST","cc092f"],"2033":["Arkansas Tech","ARTE","000000"],"2029":["Arkansas-Pine Bluff","UAPB","e0aa0f"],"349":["Army","ARMY","000000"],"308":["Ashland","ASH","000000"],"2038":["Assumption","ASP","000000"],"2":["Auburn","AUB","002b5c"],"124":["Augsburg","AUGS","74233d"],"2042":["Augustana (IL)","AUGC","000000"],"2043":["Augustana (SD)","AUSD","000000"],"2044":["Aurora","AUR","00549f"],"2045":["Austin","AUS","000000"],"2046":["Austin Peay","APSU","8e0b0b"],"3178":["Ave Maria University","AVE M","000000"],"2047":["Averett","AVER","012853"],"2048":["Avila University","AVILA","000000"],"2049":["Azusa Pacific","APU","000000"],"495":["BLUEFIELD","BLU",null],"252":["BYU","BYU","0047ba"],"488":["Baker University","BAK","000000"],"188":["Baldwin Wallace","BW","000000"],"2050":["Ball State","BALL","ba0c2f"],"122666":["Barton","BART","000000"],"121":["Bates","BATE","a51e36"],"239":["Baylor","BAY","154734"],"2056":["Belhaven","BELH","215732"],"266":["Beloit","BELO","000000"],"132":["Bemidji State","BST","000000"],"490":["Benedict","BEN",null],"2283":["Benedictine (IL)","BNIL","000000"],"16111":["Benedictine College","BENC",null],"2060":["Bentley","BENT","000000"],"2757":["Berry","BERR","00205b"],"492":["Bethany (KS)","BETHA","000000"],"2062":["Bethany (WV)","BCWV","000000"],"2802":["Bethel (MN)","BUMN","002d62"],"2064":["Bethel University Tennessee","BETHTN","000000"],"2065":["Bethune-Cookman","BCU","7b1831"],"2069":["Black Hills State","BHSU","000000"],"2071":["Bloomsburg","BBU","000000"],"124180":["Bluefield State","BLUS",null],"2074":["Bluffton","BLF","46166a"],"68":["Boise State","BOIS","0033a0"],"103":["Boston College","BC","8c2232"],"340":["Bowdoin","BOW","ffffff"],"2075":["Bowie State","BOWE","000000"],"189":["Bowling Green","BGSU","fd5000"],"2913":["Brevard","BRE","000000"],"2079":["Bridgewater","BRI","990022"],"18":["Bridgewater State","BRIS","bf2f38"],"2080":["British Columbia","BBM","000000"],"2781":["Brockport","BRO","000000"],"225":["Brown","BRWN","411e09"],"2803":["Bryant","BRY","000000"],"2083":["Bucknell","BUCK","000060"],"63":["Buena Vista","BVU","feba12"],"2084":["Buffalo","BUF","005bbb"],"2085":["Buffalo State","BSU","000000"],"2086":["Butler","BTLR","0d1361"],"2570":["CSU Pueblo","CSUP","000000"],"2094":["Cal Lutheran","CLU","3b2361"],"13":["Cal Poly","CP","1E4D2B"],"2858":["California (PA)","CAPA","000000"],"25":["California","CAL","041e42"],"129738":["Calvin","CALU","000000"],"2097":["Campbell","CAM","000000"],"2098":["Campbellsville University","CMPBVIL",null],"424":["Capital","CAPU","000000"],"2101":["Carleton","CAR","173a79"],"2102":["Carnegie Mellon","CGMU","000000"],"32":["Carroll (WI)","CRU","000000"],"2105":["Carson Newman","CN","f2682a"],"2106":["Carthage","CCW","000000"],"2963":["Case Western Reserve","CWRU","000000"],"2107":["Catawba","CAT","0c233f"],"2108":["Catholic","CATH","000000"],"101442":["Centenary (LA)","CTLA","000000"],"2110":["Central Arkansas","CARK","a7a9ac"],"2964":["Central College","CNTC","ea0029"],"2115":["Central Connecticut","CCSU","1B49A2"],"2860":["Central Methodist","CDF","000000"],"2117":["Central Michigan","CMU","4c0027"],"2118":["Central Missouri","UCM","000000"],"2122":["Central Oklahoma","UCO","000000"],"2119":["Central State","CNSU","000000"],"2120":["Central Washington","CWAU","000000"],"2121":["Centre","CCO","000000"],"2123":["Chadron State","CHAD","000000"],"411":["Chapman","CHAP","ab1d38"],"2128":["Charleston (WV)","UCWV","000000"],"2127":["Charleston Southern","CHSO","2e3192"],"2429":["Charlotte","CLT","005035"],"3253":["Charlotte","COLLE",null],"236":["Chattanooga","UTC","00386b"],"80":["Chicago","CHI","000000"],"2804":["Chowan","CWAN","000000"],"3112":["Christopher Newport","CNU","000000"],"2132":["Cincinnati","CIN","000000"],"17":["Claremont Mudd Scripps","CMS","981a31"],"2134":["Clarion","CLRN","000000"],"2805":["Clark Atlanta","CKGA","000000"],"228":["Clemson","CLEM","f56600"],"2557":["Coast Guard","USCG","000000"],"324":["Coastal Carolina","CCU","006f71"],"2141":["Coe","COE","881922"],"33":["Colby","CLBY","012778"],"3210":["Cole College","COLE",null],"2142":["Colgate","COLG","821019"],"108382":["College of Idaho","COI",null],"38":["Colorado","COLO","cfb87c"],"11":["Colorado Mesa","COMU","000000"],"2146":["Colorado School of Mines","CMIN","000000"],"36":["Colorado State","CSU","004c23"],"171":["Columbia","COLU","7ba4db"],"2148":["Concord","CONC","000000"],"2152":["Concordia (MN)","CCMN","701d45"],"409":["Concordia (WI)","CUW","245699"],"2151":["Concordia Chicago","CUC","572a31"],"3066":["Concordia St. Paul","CSP","000000"],"507":["Concordia University Nebraska","CONCONE",null],"2985":["Concordia-Michigan","CONCMI","000000"],"2155":["Cornell (IA)","CNIA","000000"],"172":["Cornell","COR","b31b1b"],"509":["Crown","CRWN","5c2f92"],"510":["Culver-Stockton College","CULVE",null],"2161":["Cumberland (TN)","CUMBTN",null],"511":["Cumberlands","CMBS","000000"],"40":["Curry","CC","65448b"],"512":["Dakota State University","DAKOT","000000"],"513":["Dakota Wesleyan","DWU",null],"159":["Dartmouth","DART","005730"],"2166":["Davidson","DAV","000000"],"2168":["Dayton","DAY","004B8D"],"83":["DePauw","DPU","000000"],"110438":["Dean","DEAN",null],"190":["Defiance College","DEF","4e2d8a"],"48":["Delaware","DEL","00539f"],"2169":["Delaware State","DSU","009cdb"],"2808":["Delaware Valley","DVU","004c23"],"2170":["Delta State","DLST","00753e"],"2171":["Denison","DSN","000000"],"2254":["Des Moines","GRANDVIEW",null],"2175":["Dickinson","DKSN","ed192d"],"316":["Dickinson State University","DIC","000000"],"2181":["Drake","DRKE","005596"],"49":["Dubuque","DBQ","000000"],"150":["Duke","DUKE","00539b"],"2184":["Duquesne","DUQ","002D62"],"151":["East Carolina","ECU","582c83"],"2191":["East Central","ECNU","000000"],"2188":["East Stroudsburg","ESU","000000"],"2193":["East Tennessee State","ETSU","002d61"],"2837":["East Texas A&M","ETAM","000000"],"2194":["East Texas Baptist","ETBU","002b44"],"127954":["Eastern","EU",null],"2197":["Eastern Illinois","EIU","000000"],"2198":["Eastern Kentucky","EKU","660819"],"2199":["Eastern Michigan","EMU","006938"],"2201":["Eastern New Mexico","ENMU","000000"],"2202":["Eastern Oregon","EORE",null],"331":["Eastern Washington","EWU","a10022"],"2205":["Edinboro","EDBR","000000"],"2206":["Edward Waters","EDW",null],"122775":["Elgin","JUDSO",null],"2207":["Elizabeth City State","ECSU","000000"],"72":["Elmhurst","ELMH","000000"],"2210":["Elon","ELON","020303"],"2213":["Emory & Henry","EHC","1e376d"],"2214":["Emporia State","EMSU","000000"],"452":["Endicott","ENDC","000000"],"101784":["Erskine","ERSK","000000"],"101":["Eureka","ERKA","960a2c"],"2865":["Evangel University","EVA",null],"2221":["FDU Florham","FDUF","003f87"],"2986":["Fairmont State","FMSU","000000"],"2219":["Faulkner University","FAULKNER","000000"],"2220":["Fayetteville State","FAYU","000000"],"2222":["Ferris State","FRST","000000"],"366":["Ferrum","FC","000000"],"2224":["Findlay","UF","000000"],"114":["Fitchburg State","FBSU","024d36"],"50":["Florida A&M","FAMU","F89728"],"2226":["Florida Atlantic","FAU","003366"],"57":["Florida","FLA","0021a5"],"2229":["Florida International","FIU","091f3f"],"125762":["Florida Memorial University","FLAMEMRL",null],"52":["Florida State","FSU","782f40"],"2230":["Fordham","FOR","830032"],"2231":["Fort Hays","FHSU","000000"],"2237":["Fort Lewis","FLWC","000000"],"2232":["Fort Valley State","FVSU","f9bd0a"],"2967":["Framingham State","FRSU","000000"],"2234":["Franklin & Marshall","FMC","25377d"],"2233":["Franklin","FRKL","1b295b"],"112334":["Franklin Pierce","FP",null],"278":["Fresno State","FRES","b1102b"],"527":["Friends University","FRIE",null],"341":["Frostburg State","FSTU","000000"],"231":["Furman","FUR","582c83"],"417":["Gallaudet","GLDT","000000"],"367":["Gannon","GANN","000000"],"2241":["Gardner-Webb","GWEB","c12535"],"2242":["Geneva","GEN","000000"],"415":["George Fox","GFU","002d62"],"2244":["George Mason University","GMU","016600"],"2245":["Georgetown College Kentucky","GTOWNCOLL",null],"46":["Georgetown","GTWN","110E42"],"61":["Georgia","UGA","ba0c2f"],"290":["Georgia Southern","GASO","041e42"],"2247":["Georgia State","GAST","0039a6"],"59":["Georgia Tech","GT","b3a369"],"2248":["Gettysburg","GTYB","000000"],"2249":["Glenville State","GVLS","000000"],"530":["Graceland University","GRC","000000"],"2755":["Grambling","GRAM","ee8601"],"125":["Grand Valley State","GVSU","000000"],"2256":["Greensboro","GRNB","000000"],"2257":["Greenville","GRNV","f36917"],"65":["Grinnell","GRNL","000000"],"146":["Grove City","GRO","000000"],"2258":["Guilford","GLFD","910028"],"2968":["Gustavus Adolphus","GAC","000000"],"348":["Hamilton","HAM","062f87"],"162":["Hamline","HMLN","98012e"],"297":["Hampden Sydney","HSC","900028"],"2261":["Hampton","HAMP","0067AC"],"2262":["Hanover","HNVR","0b486d"],"2810":["Hardin Simmons","HSU","5b2d83"],"2264":["Harding","HARD","000000"],"173":["Hartwick","HRTW","000000"],"108":["Harvard","HARV","990000"],"535":["Haskell Indian Nations Univ","HASKELL","000000"],"62":["Hawai'i","HAW","005737"],"191":["Heidelberg","HDBG","000000"],"2271":["Henderson State","HSTU","000000"],"418":["Hendrix","HDX",null],"125974":["Hilbert","HLBT",null],"2273":["Hillsdale","HLDL","000000"],"2274":["Hiram","HIRM","000000"],"174":["Hobart","HBRT","000000"],"108354":["Holland College","HOL",null],"107":["Holy Cross","HC","582c83"],"2812":["Hope","HOPE","000000"],"2277":["Houston Christian","HCU","00539c"],"248":["Houston","HOU","c8102e"],"47":["Howard","HOW","003a63"],"2758":["Howard Payne","HWPU","02215b"],"2938":["Huntingdon","HNTC","000000"],"2280":["Husson","HUSS","004b44"],"2291":["IU Pennsylvania","IUP","000000"],"304":["Idaho State","IDST","ef8c00"],"70":["Idaho","IDHO","000000"],"2286":["Illinois College","ILLC","000000"],"356":["Illinois","ILL","ff5f05"],"2287":["Illinois State","ILST","CE1126"],"306":["Illinois Wesleyan","ILWU","000000"],"2916":["Incarnate Word","UIW","000000"],"84":["Indiana","IU","970310"],"282":["Indiana State","INST","00669a"],"111756":["Indiana Wesleyan","INWESL",null],"2292":["Indianapolis","INDY","000000"],"2294":["Iowa","IOWA","231f20"],"66":["Iowa State","ISU","ae192d"],"175":["Ithaca","ITH","000000"],"2296":["Jackson State","JKST","123297"],"55":["Jacksonville State","JXST","cc0000"],"256":["James Madison","JMU","450084"],"2939":["Jamestown","UJ","000000"],"2302":["John Carroll","JCU","000000"],"118":["Johns Hopkins","JHU","000000"],"2304":["Johnson C. Smith","JCSU","000000"],"246":["Juniata","JUN","031832"],"126":["Kalamazoo","KALC","000000"],"2305":["Kansas","KU","0051ba"],"2306":["Kansas State","KSU","330a57"],"547":["Kansas Wesleyan","KANSA","000000"],"2871":["Kean","KEAN","092f56"],"126110":["Keiser University","KEISER",null],"338":["Kennesaw State","KENN","fdbb30"],"2309":["Kent State","KENT","002664"],"3077":["Kentucky Christian","KYCHR","000000"],"2310":["Kentucky State","KYSU","000000"],"2316":["Kentucky Wesleyan","KWC","000000"],"96":["Kentucky","UK","0033a0"],"352":["Kenyon","KNY","000000"],"122774":["Keystone","KYSN",null],"247":["King's","KNGS","c41230"],"255":["Knox","KNOX","000000"],"2315":["Kutztown","KUTZ","000000"],"99":["LSU","LSU","461d76"],"2318":["La Verne","ULV","004812"],"548":["LaGrange","LGC","000000"],"322":["Lafayette","LAF","790000"],"437":["Lake Erie","LKER","000000"],"262":["Lake Forest","LFC","000000"],"6353":["Lakeland","LKLD",null],"2320":["Lamar","LAM","000000"],"2323":["Lane College","LANE","000000"],"2324":["Langston","LNGT",null],"268":["Lawrence","LAW","000000"],"388":["Lebanon Valley","LVC","003767"],"2329":["Lehigh","LEH","6c2b2a"],"2331":["Lenoir Rhyne","LENR","000000"],"2333":["Lewis & Clark","LC","f37737"],"2335":["Liberty","LIB","0a254e"],"124179":["Lincoln (CA)","LNCA",null],"2876":["Lincoln (MO)","LNMO","000000"],"2339":["Lincoln (PA)","LNPA","000000"],"3209":["Lindenwood Belleville","LINB",null],"2815":["Lindenwood","LIN","000000"],"2877":["Lindsey Wilson","LWU",null],"203":["Linfield","LINF","46256a"],"2940":["Livingstone","LIV","000000"],"209":["Lock Haven","LHU","000000"],"2341":["Long Island University","LIU",null],"263":["Loras","LOR","452d7d"],"2347":["Louisiana Christian","LCHR","000000"],"309":["Louisiana","UL","ce181e"],"2348":["Louisiana Tech","LT","003087"],"97":["Louisville","LOU","c9001f"],"67":["Luther","LUTH","015a9c"],"2354":["Lycoming","LYCO","15283f"],"101161":["Lyon","LYON","000000"],"126146":["Madonna","MDNN",null],"2770":["Manitoba","MB","000000"],"109":["MIT","MIT","000000"],"2359":["Macalester","MAC","000000"],"311":["Maine","ME","127dbe"],"274":["Maine Maritime","UMMA","000000"],"2362":["Manchester","MNCH","ddac14"],"2365":["Mansfield","MNFD","000000"],"2366":["Marian (IN)","MUIN","000000"],"317":["Marietta","MRTT","000000"],"2368":["Marist","MRST","e53730"],"2369":["Mars Hill","MHU","004b8d"],"276":["Marshall","MRSH","00b140"],"446":["Martin Luther","MLC","000000"],"2371":["Mary Hardin Baylor","MHB","492f92"],"120":["Maryland","MD","ce1126"],"2373":["Maryville (TN)","MCTN","000000"],"110":["Mass Maritime","MMT","212c62"],"113":["Massachusetts","MASS","881c1c"],"561":["Mayville State","MYSU","000000"],"2700":["McDaniel","MCD","00674d"],"2816":["McKendree","MCK","000000"],"241":["McMurry","MCM","98002e"],"2377":["McNeese","MCN","00529C"],"235":["Memphis","MEM","004991"],"2382":["Mercer","MER","ff7f29"],"2383":["Merchant Marine","MMA","000000"],"2385":["Mercyhurst","MERC","000000"],"2771":["Merrimack","MRMK","000000"],"291":["Methodist","MU","000000"],"193":["Miami (OH)","M-OH","c41230"],"2390":["Miami","MIA","f47423"],"127":["Michigan State","MSU","173f35"],"2392":["Michigan Tech","MTU","000000"],"130":["Michigan","MICH","00274c"],"2393":["Middle Tennessee","MTSU","036eb7"],"2394":["Middlebury","MIDB","365a8a"],"565":["Midland","MIDL","000000"],"2395":["Midwestern State","MWSU","000000"],"2396":["Miles","MILE","000000"],"210":["Millersville","MILL","000000"],"74":["Millikin","MILK","000000"],"2398":["Millsaps","MLSP","000000"],"134":["Minnesota Duluth","UMD","000000"],"135":["Minnesota","MINN","5e0a2f"],"2399":["Minnesota Morris","MNMO","8d191b"],"2817":["Minnesota St Moorhead","MSUM","000000"],"2364":["Minnesota State","MNST","000000"],"568":["Minot State","MINS","000000"],"2969":["Misericordia","MISE","000000"],"344":["Mississippi State","MSST","5d1725"],"2400":["Mississippi Valley State","MVSU","005328"],"2880":["Missouri Baptist","MOBU",null],"2402":["Missouri S&T","MS&T","000000"],"2403":["Missouri Southern State","MSSU","000000"],"2623":["Missouri State","MOST","5e0009"],"142":["Missouri","MIZ","f1b82d"],"137":["Missouri Western","MOWE","000000"],"2919":["Monmouth (IL)","MNIL","000000"],"2405":["Monmouth","MONM","051844"],"134001":["Monroe","MON",null],"149":["Montana","MONT","751D4A"],"147":["Montana State","MTST","00205c"],"2701":["Montana Western","UMW","000000"],"2818":["Montclair State","MCST","c20f2f"],"3100":["Monterrey Tech","MITE","000000"],"323":["Moravian","MOR","1f3361"],"2413":["Morehead State","MORE","094FA3"],"60":["Morehouse","MRHO","000000"],"2415":["Morgan State","MORG","014786"],"2416":["Morningside","MNGS","000000"],"2419":["Mount St Joseph","MSJ","002d5d"],"426":["Mount Union","UMU","000000"],"2422":["Muhlenberg","MUHL","000000"],"93":["Murray State","MUR","002148"],"332":["Muskingum","MSK","000000"],"152":["NC State","NCSU","cc0000"],"2426":["Navy","NAVY","00225b"],"158":["Nebraska","NEB","e31937"],"2438":["Nebraska Kearney","NEBK","000000"],"6845":["Nebraska Wesleyan","NWU",null],"2904":["Nelson (TX)","NEL","000000"],"2440":["Nevada","NEV","041e42"],"111675":["New England","UNE",null],"160":["New Hampshire","UNH","004990"],"2441":["New Haven","NHVN","041e42"],"2424":["New Mexico Highlands","NMHU","000000"],"167":["New Mexico","UNM","ba0c2f"],"166":["New Mexico State","NMSU","7e141b"],"2444":["Newberry","NBRY","d02030"],"2447":["Nicholls","NICH","C41230"],"2884":["Nichols","NICC","007b5f"],"2450":["Norfolk State","NORF","0c8968"],"2453":["North Alabama","UNA","000000"],"123086":["North American","NAMU",null],"2448":["North Carolina A&T","NCAT","0505aa"],"2428":["North Carolina Central","NCCU","880023"],"153":["North Carolina","UNC","7bafd4"],"286":["North Carolina Wesleyan","NCW","000000"],"3071":["North Central College","NCC","000000"],"155":["North Dakota","UND","00A26B"],"2449":["North Dakota State","NDSU","01402A"],"2822":["North Greenville","NGU","d91e39"],"75":["North Park","NPU","000000"],"249":["North Texas","UNT","068f33"],"196":["Northeastern State","NESU","000000"],"2464":["Northern Arizona","NAU","003976"],"2458":["Northern Colorado","UNCO","13558D"],"2459":["Northern Illinois","NIU","c8102e"],"2460":["Northern Iowa","UNI","473282"],"128":["Northern Michigan","NMI","000000"],"425":["Northern State","NSU","000000"],"138":["Northwest Missouri State","MWMO","000000"],"583":["Northwestern (MN)","UNW","000000"],"2823":["Northwestern (OK)","NWOK","000000"],"2466":["Northwestern State","NWST","492F91"],"77":["Northwestern","NU","492f92"],"2886":["Northwood","NWD","000000"],"2467":["Norwich","NWCH","000000"],"87":["Notre Dame","ND","062340"],"391":["Oberlin","OBE","000000"],"195":["Ohio","OHIO","154734"],"427":["Ohio Northern","OHNU","000000"],"194":["Ohio State","OSU","ba0c2f"],"3161":["Ohio State Newark","OSU","000000"],"2980":["Ohio Wesleyan","OWU","000000"],"319":["Oklahoma Baptist","OKBU",null],"2824":["Oklahoma Panhandle","OPSU","000000"],"201":["Oklahoma","OU","990000"],"197":["Oklahoma State","OKST","fe5c00"],"295":["Old Dominion","ODU","003768"],"145":["Ole Miss","MISS","13294b"],"354":["Olivet","UOO","000000"],"2483":["Oregon","ORE","00934b"],"204":["Oregon State","ORST","dc4405"],"359":["Otterbein","OTTB","000000"],"2888":["Ouachita Baptist","OBU","000000"],"2487":["Pace","PACE","000000"],"205":["Pacific (OR)","PCOR","b4183a"],"2486":["Pacific Lutheran","PCLT","ffc423"],"213":["Penn State","PSU","061440"],"219":["Pennsylvania","PENN","082A74"],"108358":["Phoenix","AZCHR",null],"95":["Pikeville","PIKEV",null],"90":["Pittsburg State","PTSU","000000"],"221":["Pittsburgh","PITT","003594"],"2972":["Plymouth State","PLYM","054e39"],"3179":["Point University","POINT",null],"2923":["Pomona Pitzer","POPI","00549a"],"2502":["Portland State","PRST","00311e"],"126086":["Post","POST",null],"2504":["Prairie View A&M","PV","582c83"],"2506":["Presbyterian","PRES","194896"],"163":["Princeton","PRIN","000000"],"2508":["Puget Sound","PUG","680001"],"2509":["Purdue","PUR","ceb888"],"2825":["Quincy","QUI","000000"],"2516":["Randolph Macon","RMC","fcdf12"],"29":["Redlands","REDL","751708"],"2890":["Reinhardt","RHDT",null],"2528":["Rensselaer","RPI","000000"],"227":["Rhode Island","URI","091f3f"],"2519":["Rhodes","RHDS","000000"],"242":["Rice","RICE","00205b"],"257":["Richmond","RICH","9e0712"],"2891":["Ripon","RIP","000000"],"2523":["Robert Morris","RMU","00214D"],"184":["Rochester (NY)","URNY","000000"],"2524":["Rockford","RFU","5a3f99"],"599":["Roosevelt","RSVT","000000"],"127991":["Roosevelt","RSVT","000000"],"86":["Rose Hulman","RHIT","800000"],"2827":["Rowan","ROW","571b04"],"164":["Rutgers","RUTG","ce0e2d"],"2545":["SE Louisiana","SELA","215732"],"2567":["SMU","SMU","a80000"],"2782":["SUNY Cortland","NYCL","000000"],"3236":["SUNY Erie","NYER",null],"2951":["SUNY Maritime","NYMT","000000"],"3110":["SUNY Morrisville","NYMS","000000"],"16":["Sacramento State","SAC","00573C"],"2529":["Sacred Heart","SHU","a40012"],"129":["Saginaw Valley State","SVSU","000000"],"2830":["Saint Anselm","SANS","000000"],"2831":["Saint Francis (IN)","SFIN","000000"],"2598":["Saint Francis","SFPA","a20012"],"2600":["Saint John's (MN)","STJM","ce153e"],"2614":["Saint Vincent","SVC","000000"],"2615":["Saint Xavier","STX","000000"],"2532":["Salisbury","SAL","8b0e04"],"2776":["Salve Regina","SALV","000000"],"2534":["Sam Houston","SHSU","f56423"],"2535":["Samford","SAM","005485"],"21":["San Diego State","SDSU","a6192e"],"301":["San Diego","USD","2f99d4"],"23":["San Jos\u00e9 State","SJSU","0038a8"],"2542":["Savannah State","SAV","280298"],"611":["Seton Hill","SEHI","000000"],"2553":["Sewanee","SEWA","000000"],"2551":["Shaw","SHAW","000000"],"2828":["Shenandoah","SHEN","000000"],"2974":["Shepherd","SHEP","000000"],"2559":["Shippensburg","SHIP","000000"],"2560":["Shorter","SHOU","000000"],"2562":["Siena Heights","SHTU","000000"],"129758":["Simpson (CA)","SUCA",null],"2564":["Simpson (IA)","SCIA","b20838"],"2894":["Sioux Falls","SFU","000000"],"215":["Slippery Rock","SRU","000000"],"6":["South Alabama","USA","00205b"],"2579":["South Carolina","SC","73000a"],"2569":["South Carolina State","SCST","7d1315"],"233":["South Dakota","SDAK","CD1241"],"613":["South Dakota Mines","SDMT","000000"],"2571":["South Dakota State","SDST","0033a0"],"58":["South Florida","USF","006747"],"2546":["Southeast Missouri State","SEMO","c8102e"],"267":["Southeastern","SEU","007dc3"],"199":["Southeastern Oklahoma State","SEOK","000000"],"2568":["Southern Arkansas","SAR","000000"],"2583":["Southern Connecticut State","SCTS","000000"],"79":["Southern Illinois","SIU","85283D"],"2582":["Southern","SOU","004B97"],"2572":["Southern Miss","USM","ffc72c"],"200":["Southern Nazarene","SNU","000000"],"2584":["Southern Oregon","SOR",null],"253":["Southern Utah","SUU","c72026"],"2896":["Southern Virginia","SOVA","000000"],"2586":["Southwest Baptist","SWBU","000000"],"2587":["Southwest Minnesota State","SWMS","000000"],"616":["Southwestern (KS)","SWKS","000000"],"2927":["Southwestern Oklahoma State","SOSU","000000"],"2588":["Southwestern U","SWU","000000"],"81":["Springfield","SPR","000000"],"2591":["St. Ambrose","STAM","000000"],"111610":["St. Andrews","STAU",null],"2595":["St. Francis (IL)","SFIL","000000"],"374":["St. John Fisher","STJF","000000"],"2779":["St. Lawrence","USL","000000"],"2832":["St. Norbert","STNC","000000"],"133":["St. Olaf","OLAF","000000"],"3254":["St. Petersburg","UFFL",null],"375":["St. Scholastica","CSS","000000"],"2900":["St. Thomas","STMN","000000"],"24":["Stanford","STAN","8c1515"],"2617":["Stephen F. Austin","SFA","393996"],"618":["Sterling","STLG","000000"],"56":["Stetson","STET","0a5640"],"471":["Stevenson","STVS","005747"],"284":["Stonehill","STO","000000"],"2619":["Stony Brook","STBK","990000"],"2834":["Sul Ross State","SRST","000000"],"216":["Susquehanna","SUSQ","6b1a31"],"183":["Syracuse","SYR","000e54"],"2628":["TCU","TCU","4d1979"],"2627":["Tarleton State","TAR","000000"],"620":["Taylor","TLRU","000000"],"218":["Temple","TEM","a41e35"],"2634":["Tennessee State","TNST","171796"],"2635":["Tennessee Tech","TNTC","5A4099"],"2633":["Tennessee","TENN","ff8200"],"245":["Texas A&M","TA&M","500000"],"2658":["Texas A&M-Kingsville","TAMK","000000"],"2637":["Texas College","TXCL",null],"251":["Texas","TEX","af5c37"],"2639":["Texas Lutheran","TXLU","fdbe10"],"2640":["Texas Southern","TXSO","860038"],"326":["Texas State","TXST","501214"],"2641":["Texas Tech","TTU","da291c"],"2643":["The Citadel","CIT","7badd3"],"2442":["The College of New Jersey","TCNJ","154c7d"],"2644":["Thiel","THI","000000"],"2646":["Thomas More","TMOR","000000"],"134000":["Thomas","THO",null],"2838":["Tiffin","TIFF","000000"],"2649":["Toledo","TOL","0b2240"],"119":["Towson","TOW","FFC229"],"2651":["Trine","TRNE","000000"],"2977":["Trinity (CT)","TCCT","032d58"],"386":["Trinity (TX)","TUTX","000000"],"3214":["Trinity Bible","TBIB",null],"2653":["Troy","TROY","862633"],"3237":["Troy","HVCC",null],"2654":["Truman State","TRST","000000"],"112":["Tufts","TUFT","3e8ede"],"2655":["Tulane","TULN","006747"],"202":["Tulsa","TLSA","003595"],"2839":["Tusculum","TUSC","f2682a"],"2657":["Tuskegee","TUSK","000000"],"5":["UAB","UAB","1a5632"],"399":["UAlbany","UALB","3D2777"],"302":["UC Davis","UCD","002855"],"2116":["UCF","UCF","000000"],"26":["UCLA","UCLA","2774ae"],"41":["UConn","CONN","0c2340"],"2433":["UL Monroe","ULM","840029"],"379":["UMass Dartmouth","MDAR","000000"],"2882":["UNC Pembroke","UNCP","000000"],"2439":["UNLV","UNLV","cf0a2c"],"30":["USC","USC","9d2235"],"2630":["UT Martin","UTM","FF6700"],"110243":["UT Permian Basin","UTPB",null],"2638":["UTEP","UTEP","ff8200"],"2636":["UTSA","UTSA","0c2340"],"2842":["UVA Wise","UVAW","e30000"],"237":["Union","UNNY","762334"],"559":["University of Mary","MARY","000000"],"3212":["University of Mexico","UNAM",null],"389":["Upper Iowa","UIU","000000"],"2667":["Ursinus","URSN","98012e"],"328":["Utah State","USU","0f2439"],"3101":["Utah Tech","UTU","000000"],"254":["Utah","UTAH","be0000"],"390":["Utica","UTIC","000000"],"2678":["VMI","VMI","ae122a"],"2673":["Valdosta State","VALD","dd1a32"],"628":["Valley City State","VCSU","000000"],"2674":["Valparaiso","VAL","794500"],"238":["Vanderbilt","VAN","000000"],"293":["Vermont State Castleton","VTSC","000000"],"222":["Villanova","VILL","00205b"],"258":["Virginia","UVA","232d4b"],"2355":["Virginia Lynchburg","VUL",null],"330":["Virginia State","VSU","000000"],"259":["Virginia Tech","VT","6a2c3e"],"2676":["Virginia Union","VUU","000000"],"2749":["WPI","WPI","000000"],"2706":["WVU Tech","WVUT","000000"],"89":["Wabash","WAB","000000"],"2681":["Wagner","WAG","00483A"],"154":["Wake Forest","WAKE","ceb888"],"3080":["Waldorf","WLDF","000000"],"2682":["Walsh","WLSH","000000"],"2683":["Warner","WRNR",null],"2685":["Wartburg","WTBG","f5822b"],"2687":["Washburn","WSBN","000000"],"2686":["Washington & Jefferson","W&J","000000"],"264":["Washington","WASH","33006f"],"143":["Washington St. Louis","WUMO","000000"],"265":["Washington State","WSU","a60f2d"],"2688":["Washington and Lee","W&L","000399"],"630":["Wayland Baptist","WYBU",null],"131":["Wayne State (MI)","WSMI","000000"],"2844":["Wayne State (NE)","WSNE","000000"],"2845":["Waynesburg","WAYN","000000"],"2691":["Webber International","WINT","bf2f38"],"2692":["Weber State","WEB","18005a"],"336":["Wesleyan (CT)","WSCT","d72121"],"2695":["West Alabama","UWA","d31d33"],"223":["West Chester","WCHT","000000"],"110242":["West Florida","WFL",null],"2698":["West Georgia","WGA","0033a1"],"2699":["West Liberty","WLU","000000"],"3211":["West Memphis","FAI",null],"2704":["West Texas","WTAM","000000"],"277":["West Virginia","WVU","eaaa00"],"2707":["West Virginia State","WVSU","000000"],"455":["West Virginia Wesleyan","WVWC","000000"],"2717":["Western Carolina","WCU","492F91"],"2714":["Western Colorado","WCOL","000000"],"2843":["Western Connecticut State","WCSU","002857"],"2710":["Western Illinois","WIU","4e1e8a"],"98":["Western Kentucky","WKU","e13a3e"],"2711":["Western Michigan","WMU","532e1f"],"2702":["Western New England","WNE","000000"],"2703":["Western New Mexico","WNMU","000000"],"2848":["Western Oregon","WORU","000000"],"2909":["Westfield State","WFST","1b509e"],"134087":["Westgate Christian University","WES",null],"433":["Westminster (MO)","WCMO","06496f"],"2849":["Westminster (PA)","WCPA","000000"],"396":["Wheaton (IL)","WCIL","000000"],"112335":["Wheeling","WHLG",null],"2850":["Whittier","WHTR","4a217b"],"2721":["Whitworth","WHIW","930036"],"2725":["Widener","WIDE","0056ba"],"398":["Wilkes","WILK","002856"],"2930":["Willamette","WLMT","960a2c"],"2729":["William & Mary","W&M","115740"],"2911":["William Jewell","WJC","000000"],"2970":["William Paterson","WPU","000000"],"2912":["William Penn","WPEN","000000"],"2731":["Williams","WLM","500082"],"3130":["Williamson","WMSN","000000"],"2733":["Wilmington (OH)","WCOH","000000"],"351":["Wingate","WINU","182441"],"2851":["Winona State","WNST","000000"],"2736":["Winston-Salem State","WSSU","bb0100"],"275":["Wisconsin","WIS","a00000"],"2738":["Wisconsin Eau Claire","UWEC","000000"],"2740":["Wisconsin La Crosse","UWL","000000"],"2741":["Wisconsin Lutheran","WLC","006241"],"271":["Wisconsin Oshkosh","UWO","000000"],"272":["Wisconsin Platteville","UWP","000000"],"2723":["Wisconsin River Falls","UWRF","000000"],"2743":["Wisconsin Stevens Point","UWSP","000000"],"2744":["Wisconsin Stout","UWST","000000"],"2745":["Wisconsin Whitewater","UWW","000000"],"2746":["Wittenberg","WITT","000000"],"2747":["Wofford","WOF","533B23"],"2748":["Wooster","WOO","000000"],"402":["Worcester State","WORC","004b8e"],"2751":["Wyoming","WYO","492f24"],"43":["Yale","YALE","004a81"],"2754":["Youngstown State","YSU","E51936"]},"roster":[{"name":"Mike","slot":1,"picks":["87","30","213","2628","12","167"]},{"name":"Jim","slot":2,"picks":["194","130","2567","59","256","235"]},{"name":"Ty","slot":3,"picks":["61","145","228","68","2","275"]},{"name":"John","slot":4,"picks":["2483","333","2633","356","221","158"]},{"name":"Merc","slot":5,"picks":["84","245","264","2579","258","52"]},{"name":"Karan","slot":6,"picks":["251","99","57","142","2306","152"]},{"name":"Murph","slot":7,"picks":["2390","252","97","2294","2439","2426"]},{"name":"Chris","slot":8,"picks":["2641","201","254","248","259","197"]}],"seed":{"type":1,"week":1,"label":"Preseason","ranks":[{"id":"194","rank":1,"votes":1672.0},{"id":"2483","rank":2,"votes":1597.0},{"id":"61","rank":3,"votes":1513.0},{"id":"87","rank":4,"votes":1510.0},{"id":"251","rank":5,"votes":1483.0},{"id":"84","rank":6,"votes":1440.0},{"id":"2390","rank":7,"votes":1379.0},{"id":"245","rank":8,"votes":1131.0},{"id":"145","rank":9,"votes":1102.0},{"id":"201","rank":10,"votes":1047.0},{"id":"99","rank":11,"votes":988.0},{"id":"2641","rank":12,"votes":983.0},{"id":"333","rank":13,"votes":904.0},{"id":"30","rank":14,"votes":839.0},{"id":"252","rank":14,"votes":839.0},{"id":"130","rank":16,"votes":718.0},{"id":"264","rank":17,"votes":501.0},{"id":"213","rank":18,"votes":482.0},{"id":"2567","rank":19,"votes":434.0},{"id":"2633","rank":20,"votes":394.0},{"id":"254","rank":21,"votes":304.0},{"id":"2294","rank":22,"votes":260.0},{"id":"248","rank":23,"votes":252.0},{"id":"97","rank":24,"votes":194.0},{"id":"142","rank":25,"votes":117.0}],"others":[{"id":"228","votes":112.0},{"id":"57","votes":51.0},{"id":"68","votes":43.0},{"id":"12","votes":32.0},{"id":"2628","votes":11.0},{"id":"2579","votes":10.0},{"id":"2426","votes":10.0},{"id":"356","votes":9.0},{"id":"238","votes":8.0},{"id":"197","votes":8.0},{"id":"221","votes":7.0},{"id":"259","votes":6.0}]}}</script>
+<script>
+"use strict";
+/* ==================================================================
+   AP Poll Pick'em  —  self-contained static site
+   Poll data: ESPN public rankings API (no key, CORS-open)
+   ================================================================== */
+
+const DATA   = JSON.parse(document.getElementById('payload').textContent);
+const TEAMS  = DATA.teams;          // id -> [name, abbr, color]
+const ROSTER = DATA.roster;         // [{name, slot, picks:[teamId...]}]
+const SEED   = DATA.seed;           // fallback poll if the network fails
+
+const BUYIN = 200;
+const POOL  = BUYIN * ROSTER.length;                 // $1,600
+const PRE   = { pct:.40, prizes:[400,160,80]  };     // final poll BEFORE playoffs
+const POST  = { pct:.60, prizes:[600,240,120] };     // final poll AFTER playoffs
+const SERIES = ROSTER.map(p => `var(--s${p.slot})`);
+
+/* ---------- season: ESPN season N runs Feb N -> Jan N+1 ---------- */
+const qs = new URLSearchParams(location.search);
+const NOW = new Date();
+const SEASON = +(qs.get('season') || (NOW.getMonth() >= 1 ? NOW.getFullYear() : NOW.getFullYear()-1));
+
+/* ---------- scoring ---------- */
+function pointsForRank(r){
+  if(r === 1)  return 25;
+  if(r <= 6)   return 20;
+  if(r <= 10)  return 15;
+  if(r <= 15)  return 10;
+  if(r <= 20)  return 5;
+  if(r <= 24)  return 3;
+  if(r === 25) return 2;
+  return 0;
+}
+const RV_BONUS = 2, RV_SLOTS = 3;   // top 3 "others receiving votes" -> 2 pts
+
+/* Build teamId -> {pts, rank, votes, kind} for one poll */
+function scoreMap(poll){
+  const m = new Map();
+  poll.ranks.forEach(r => m.set(r.id, {pts:pointsForRank(r.rank), rank:r.rank, votes:r.votes, kind:'ranked'}));
+  poll.others.slice(0, RV_SLOTS).forEach((o,i) => {
+    if(!m.has(o.id)) m.set(o.id, {pts:RV_BONUS, rank:null, votes:o.votes, kind:'rv', rvPlace:i+1});
+  });
+  return m;
+}
+
+/* Standings for one poll, sorted, with tie-aware places */
+function standings(poll){
+  const sm = scoreMap(poll);
+  const rows = ROSTER.map(p => {
+    const teams = p.picks.map(id => Object.assign({id}, sm.get(id) || {pts:0, rank:null, votes:0, kind:'none'}));
+    teams.sort((a,b) => b.pts - a.pts || (a.rank||99) - (b.rank||99) || (b.votes||0)-(a.votes||0));
+    return {name:p.name, slot:p.slot, teams, total:teams.reduce((s,t) => s + t.pts, 0)};
+  });
+  rows.sort((a,b) => b.total - a.total || a.name.localeCompare(b.name));
+  let place = 1;
+  rows.forEach((r,i) => { if(i && r.total !== rows[i-1].total) place = i+1; r.place = place; });
+  return rows;
+}
+
+/* Prize split: tied players share the sum of the places they occupy */
+function payout(rows, prizes){
+  const out = {};
+  const groups = [];
+  rows.forEach(r => {
+    const g = groups[groups.length-1];
+    if(g && g.total === r.total) g.members.push(r);
+    else groups.push({total:r.total, members:[r]});
+  });
+  let idx = 0;
+  groups.forEach(g => {
+    let sum = 0;
+    for(let i = idx; i < idx + g.members.length; i++) sum += prizes[i] || 0;
+    const each = sum / g.members.length;
+    g.members.forEach(m => out[m.name] = each);
+    idx += g.members.length;
+  });
+  return out;
+}
+
+/* ---------- ESPN fetch ---------- */
+const BASE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football/seasons';
+const SLOTS = [{t:1,w:1}];
+for(let w = 1; w <= 17; w++) SLOTS.push({t:2, w});
+SLOTS.push({t:3, w:1});
+
+const refId = ref => { const m = /teams\/(\d+)/.exec(ref || ''); return m ? m[1] : null; };
+
+function normalize(d, t, w){
+  const ranks = (d.ranks || []).map(r => ({id:refId(r.team && r.team.$ref), rank:r.current, votes:r.points || 0}))
+                               .filter(x => x.id && TEAMS[x.id]);
+  if(!ranks.length) return null;
+  const others = (d.others || []).map(o => ({id:refId(o.team && o.team.$ref), votes:o.points || 0}))
+                                 .filter(x => x.id && TEAMS[x.id])
+                                 .sort((a,b) => b.votes - a.votes);
+  return {type:t, week:w, order:t*100 + w,
+          label:(d.occurrence && d.occurrence.displayValue) || `Week ${w}`,
+          ranks, others};
+}
+
+async function fetchSlot(t, w){
+  try{
+    const r = await fetch(`${BASE}/${SEASON}/types/${t}/weeks/${w}/rankings/1`, {cache:'no-store'});
+    if(!r.ok) return null;
+    return normalize(await r.json(), t, w);
+  }catch(e){ return null; }
+}
+
+const CACHE_KEY = `appickem:${SEASON}`;
+const CACHE_TTL = 30 * 60 * 1000;   // 30 min
+
+async function loadPolls(){
+  // fast paint from cache
+  try{
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if(c && c.polls && c.polls.length){
+      render(c.polls, true);
+      if(Date.now() - c.at < CACHE_TTL){ setStatus(c.at, false); return c.polls; }
+    }
+  }catch(e){}
+
+  const polls = (await Promise.all(SLOTS.map(s => fetchSlot(s.t, s.w)))).filter(Boolean);
+  polls.sort((a,b) => a.order - b.order);
+
+  if(!polls.length){
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if(cached && cached.polls && cached.polls.length){ setStatus(cached.at, true); return cached.polls; }
+    render([Object.assign({order:101}, SEED)], false);
+    setStatus(null, true);
+    return null;
+  }
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({at:Date.now(), polls})); }catch(e){}
+  render(polls, false);
+  setStatus(Date.now(), false);
+  return polls;
+}
+
+function setStatus(at, offline){
+  const el = document.getElementById('status');
+  const when = at ? new Date(at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : null;
+  el.innerHTML = offline
+    ? `<span class="err">Couldn&rsquo;t reach ESPN &mdash; showing ${when ? 'cached data from ' + when : 'the embedded preseason poll'}.</span>`
+    : `Poll data from the ESPN public API &middot; updated ${when}. Polls post Sunday afternoons in-season.`;
+}
+
+/* ---------- rendering ---------- */
+let POLLS = [], CUR = 0;
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tname = id => (TEAMS[id] ? TEAMS[id][0] : 'Team ' + id);
+const usd = n => (n % 1 ? '$' + n.toFixed(2) : '$' + n.toLocaleString());
+const slotOf = name => (ROSTER.find(p => p.name === name) || {slot:1}).slot;
+
+function render(polls, partial){
+  POLLS = polls;
+  const want = qs.get('poll');
+  CUR = want ? Math.min(+want, polls.length-1) : polls.length - 1;
+  if(!partial || !el('pollSel').options.length) buildPollSelect();
+  draw();
+}
+
+function buildPollSelect(){
+  const s = el('pollSel');
+  s.innerHTML = POLLS.map((p,i) => `<option value="${i}">${esc(p.label)}</option>`).join('');
+  s.value = CUR;
+  s.onchange = () => { CUR = +s.value; draw(); };
+}
+
+function draw(){
+  const poll = POLLS[CUR];
+  if(!poll) return;
+  el('pollSel').value = CUR;
+  const rows = standings(poll);
+  const prev = CUR > 0 ? standings(POLLS[CUR-1]) : null;
+
+  el('subtitle').textContent =
+    `${ROSTER.length}-team pool · ${SEASON} season · ${poll.label} AP Poll · ${usd(POOL)} pot`;
+
+  drawBanner(rows, prev, poll);
+  drawStandings(rows, prev, poll);
+  drawPayouts(rows);
+  drawHistory();
+  drawBoard(poll, rows);
+}
+
+/* --- banner --- */
+function drawBanner(rows, prev, poll){
+  const lead = rows[0];
+  const tiedTop = rows.filter(r => r.total === lead.total);
+  const leadName = tiedTop.length > 1 ? tiedTop.map(r => r.name).join(' & ') : lead.name;
+  const gap = rows.find(r => r.total < lead.total);
+  el('banner').innerHTML = `
+    <div class="bstat">
+      <span class="blabel">Leader &mdash; ${esc(poll.label)}</span>
+      <span class="bval">${esc(leadName)}</span>
+    </div>
+    <div class="bstat">
+      <span class="blabel">Points</span>
+      <span class="bval">${lead.total}</span>
+    </div>
+    <div class="bstat">
+      <span class="blabel">Lead</span>
+      <span class="bval sm">${gap ? '+' + (lead.total - gap.total) + ' pts' : '&mdash;'}</span>
+    </div>
+    <div class="bstat">
+      <span class="blabel">Pot</span>
+      <span class="bval sm">${usd(POOL)} &middot; ${usd(BUYIN)} each</span>
+    </div>`;
+}
+
+/* --- standings --- */
+function drawStandings(rows, prev, poll){
+  const prevPlace = {};
+  if(prev) prev.forEach(r => prevPlace[r.name] = r.place);
+
+  const body = rows.map(r => {
+    const mv = prev ? prevPlace[r.name] - r.place : 0;
+    const mvHtml = !prev ? '<span class="delta">&mdash;</span>'
+      : mv > 0 ? `<span class="delta up">&#9650; ${mv}</span>`
+      : mv < 0 ? `<span class="delta dn">&#9660; ${-mv}</span>`
+      : '<span class="delta">&ndash;</span>';
+    const picks = r.teams.map(t => {
+      const badge = t.kind === 'ranked' ? `<span class="prank">${t.rank}</span>`
+                  : t.kind === 'rv'     ? `<span class="prank rv">RV${t.rvPlace}</span>`
+                  : `<span class="prank none">&mdash;</span>`;
+      return `<div class="pick${t.pts ? '' : ' zero'}">${badge}
+                <span class="pteam">${esc(tname(t.id))}</span>
+                <span class="ppts">${t.pts}</span></div>`;
+    }).join('');
+    return `
+      <tr class="strow" data-n="${esc(r.name)}">
+        <td class="place${r.place === 1 ? ' p1' : ''}">${r.place}</td>
+        <td><span class="pname"><span class="chev">&#9656;</span>
+            <span class="swatch" style="background:var(--s${r.slot})"></span>${esc(r.name)}</span></td>
+        <td class="num pts">${r.total}</td>
+        <td class="num">${mvHtml}</td>
+      </tr>
+      <tr class="detail" data-for="${esc(r.name)}" hidden><td colspan="4"><div class="picks">${picks}</div></td></tr>`;
+  }).join('');
+
+  el('p-standings').innerHTML = `
+    <div class="card">
+      <div class="chead">
+        <span class="ctitle">Standings</span>
+        <span class="cnote">${esc(poll.label)} AP Poll &middot; click a row for the team-by-team breakdown</span>
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>#</th><th>Player</th><th class="num">Points</th><th class="num">Move</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="chead"><span class="ctitle">Scoring</span>
+        <span class="cnote">each player&rsquo;s 6 teams, scored off the selected poll</span></div>
+      <div class="rules">
+        <div class="rule"><b>25</b>No. 1</div>
+        <div class="rule"><b>20</b>Nos. 2&ndash;6</div>
+        <div class="rule"><b>15</b>Nos. 7&ndash;10</div>
+        <div class="rule"><b>10</b>Nos. 11&ndash;15</div>
+        <div class="rule"><b>5</b>Nos. 16&ndash;20</div>
+        <div class="rule"><b>3</b>Nos. 21&ndash;24</div>
+        <div class="rule"><b>2</b>No. 25</div>
+        <div class="rule"><b>2</b>Top 3 receiving votes</div>
+      </div>
+    </div>`;
+
+  el('p-standings').querySelectorAll('.strow').forEach(tr => {
+    tr.onclick = () => {
+      const d = el('p-standings').querySelector(`.detail[data-for="${CSS.escape(tr.dataset.n)}"]`);
+      d.hidden = !d.hidden; tr.classList.toggle('open', !d.hidden);
+    };
+  });
+}
+
+/* --- payouts --- */
+function pollByType(t){
+  const c = POLLS.filter(p => p.type === t);
+  return c.length ? c[c.length-1] : null;
+}
+function drawPayouts(curRows){
+  const finalPoll = pollByType(3);                       // "Final Rankings" (after playoffs)
+  const reg = POLLS.filter(p => p.type === 2);
+  const lastReg = reg.length ? reg[reg.length-1] : null; // last regular-season poll (before playoffs)
+  const seasonDone = !!finalPoll;
+  // The pre-playoff poll only counts once the regular season is finished.
+  const preLocked = seasonDone || (lastReg && lastReg.week >= 16);
+
+  const preRows  = preLocked  ? standings(lastReg)   : curRows;
+  const postRows = seasonDone ? standings(finalPoll) : curRows;
+  const prePay   = payout(preRows,  PRE.prizes);
+  const postPay  = payout(postRows, POST.prizes);
+
+  const card = (title, pct, prizes, rows, pay, locked, src) => `
+    <div class="card">
+      <div class="chead">
+        <span class="ctitle">${title}</span>
+        <span class="pill ${locked ? 'locked' : 'live'}">${locked ? 'Final' : 'Projected'}</span>
+        <span class="cnote">${usd(POOL*pct)} &middot; ${pct*100}% of the pot &middot; ${esc(src)}</span>
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>#</th><th>Player</th><th class="num">Points</th><th class="num">Payout</th></tr></thead>
+        <tbody>${rows.map(r => `
+          <tr>
+            <td class="place${r.place===1?' p1':''}">${r.place}</td>
+            <td><span class="pname"><span class="swatch" style="background:var(--s${r.slot})"></span>${esc(r.name)}</span></td>
+            <td class="num" style="font-variant-numeric:tabular-nums">${r.total}</td>
+            <td class="num money">${pay[r.name] ? usd(pay[r.name]) : '&mdash;'}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+
+  const net = ROSTER.map(p => {
+    const take = (prePay[p.name] || 0) + (postPay[p.name] || 0);
+    return {name:p.name, slot:p.slot, pre:prePay[p.name]||0, post:postPay[p.name]||0, take, net:take - BUYIN};
+  }).sort((a,b) => b.take - a.take || a.name.localeCompare(b.name));
+
+  el('p-payouts').innerHTML = `
+    <div class="card">
+      <div class="chead"><span class="ctitle">The pot</span>
+        <span class="cnote">${ROSTER.length} teams &times; ${usd(BUYIN)}</span></div>
+      <div class="rules">
+        <div class="rule"><b>${usd(POOL)}</b>Total pot</div>
+        <div class="rule"><b>${usd(POOL*PRE.pct)}</b>Pre-playoff (40%)</div>
+        <div class="rule"><b>${usd(POOL*POST.pct)}</b>Post-playoff (60%)</div>
+        <div class="rule"><b>${usd(BUYIN)}</b>Buy-in each</div>
+      </div>
+    </div>
+    <div class="paygrid" style="margin-top:18px">
+      ${card('Pre-playoff', PRE.pct, PRE.prizes, preRows, prePay, preLocked,
+             preLocked ? `final poll before the playoffs — ${lastReg.label}`
+                       : `will use the last regular-season poll · showing ${POLLS[CUR].label}`)}
+      ${card('Post-playoff', POST.pct, POST.prizes, postRows, postPay, seasonDone,
+             seasonDone ? 'final poll after the playoffs'
+                        : `will use the final poll after the playoffs · showing ${POLLS[CUR].label}`)}
+    </div>
+    <div class="card">
+      <div class="chead"><span class="ctitle">Net position</span>
+        <span class="cnote">both buckets combined, minus the ${usd(BUYIN)} buy-in${(preLocked&&seasonDone)?'':' · projected'}</span></div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Player</th><th class="num">Pre</th><th class="num">Post</th>
+                   <th class="num">Total won</th><th class="num">Net</th></tr></thead>
+        <tbody>${net.map(r => `
+          <tr>
+            <td><span class="pname"><span class="swatch" style="background:var(--s${r.slot})"></span>${esc(r.name)}</span></td>
+            <td class="num money">${r.pre ? usd(r.pre) : '&mdash;'}</td>
+            <td class="num money">${r.post ? usd(r.post) : '&mdash;'}</td>
+            <td class="num money">${r.take ? usd(r.take) : '&mdash;'}</td>
+            <td class="num money ${r.net > 0 ? 'pos' : r.net < 0 ? 'neg' : ''}">${r.net > 0 ? '+' : r.net < 0 ? '−' : ''}${usd(Math.abs(r.net))}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+}
+
+/* --- history: line chart + table view (the light-mode contrast relief) --- */
+let HIDDEN = new Set();
+function drawHistory(){
+  if(POLLS.length < 2){
+    el('p-history').innerHTML = `<div class="card"><div class="chead"><span class="ctitle">Week by week</span></div>
+      <div class="empty">Only one poll is out so far. This fills in as the season goes.</div></div>`;
+    return;
+  }
+  const series = ROSTER.map(p => ({
+    name:p.name, slot:p.slot,
+    vals: POLLS.map(poll => standings(poll).find(r => r.name === p.name).total)
+  }));
+
+  el('p-history').innerHTML = `
+    <div class="card">
+      <div class="chead"><span class="ctitle">Points by poll</span>
+        <span class="cnote">click a name to mute it</span></div>
+      <div class="chartbox" id="chartbox"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="card">
+      <div class="chead"><span class="ctitle">Table view</span>
+        <span class="cnote">same numbers, every poll</span></div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Player</th>${POLLS.map(p => `<th class="num">${esc(p.label.replace('Week ','W').replace('Final Rankings','Final').replace('Preseason','Pre'))}</th>`).join('')}</tr></thead>
+        <tbody>${series.map(s => `
+          <tr><td><span class="pname"><span class="swatch" style="background:var(--s${s.slot})"></span>${esc(s.name)}</span></td>
+          ${s.vals.map((v,i) => `<td class="num" style="font-variant-numeric:tabular-nums${i===CUR?';font-weight:660':''}">${v}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+
+  el('legend').innerHTML = series.map(s =>
+    `<span class="lgi${HIDDEN.has(s.name)?' off':''}" data-n="${esc(s.name)}">
+       <span class="lgsw" style="background:var(--s${s.slot})"></span>${esc(s.name)}</span>`).join('');
+  el('legend').querySelectorAll('.lgi').forEach(g => g.onclick = () => {
+    const n = g.dataset.n;
+    HIDDEN.has(n) ? HIDDEN.delete(n) : HIDDEN.add(n);
+    drawHistory();
+  });
+
+  chart(series);
+}
+
+function chart(series){
+  const box = el('chartbox');
+  const W = 900, H = 400, M = {t:14, r:104, b:34, l:38};
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const shown = series.filter(s => !HIDDEN.has(s.name));
+  const all = shown.flatMap(s => s.vals);
+  const maxV = Math.max(10, ...all), minV = Math.min(0, ...all);
+  const hi = Math.ceil(maxV / 10) * 10 + 5;
+  const lo = Math.max(0, Math.floor(minV / 10) * 10 - 5);
+  const n = POLLS.length;
+  const X = i => M.l + (n === 1 ? iw/2 : iw * i / (n-1));
+  const Y = v => M.t + ih - ih * (v - lo) / (hi - lo || 1);
+
+  // y ticks
+  const step = (hi-lo) > 80 ? 20 : 10;
+  const ticks = [];
+  for(let v = Math.ceil(lo/step)*step; v <= hi; v += step) ticks.push(v);
+
+  // x labels: thin out if crowded
+  const every = n > 12 ? 2 : 1;
+  const xlab = POLLS.map((p,i) => {
+    if(i % every && i !== n-1) return '';
+    return p.label.replace('Week ','W').replace('Final Rankings','Final').replace('Preseason','Pre');
+  });
+
+  // end labels with collision push-apart
+  const ends = shown.map(s => ({name:s.name, slot:s.slot, v:s.vals[n-1], y:Y(s.vals[n-1])}))
+                    .sort((a,b) => a.y - b.y);
+  const GAP = 15;
+  for(let i = 1; i < ends.length; i++)
+    if(ends[i].y - ends[i-1].y < GAP) ends[i].y = ends[i-1].y + GAP;
+  for(let i = ends.length-2; i >= 0; i--)
+    if(ends[i+1].y - ends[i].y < GAP) ends[i].y = ends[i+1].y - GAP;
+
+  const lines = shown.map(s => {
+    const d = s.vals.map((v,i) => `${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+    return `<path d="${d}" fill="none" stroke="var(--s${s.slot})" stroke-width="2"
+             stroke-linejoin="round" stroke-linecap="round"/>`;
+  }).join('');
+
+  const dots = shown.map(s => s.vals.map((v,i) =>
+    `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3.2"
+      fill="var(--s${s.slot})" stroke="var(--surface)" stroke-width="2"/>`).join('')).join('');
+
+  box.innerHTML = `
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Points by poll for each player">
+      ${ticks.map(v => `
+        <line x1="${M.l}" x2="${M.l+iw}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"
+              stroke="var(--grid)" stroke-width="1"/>
+        <text x="${M.l-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end"
+              fill="var(--muted)" font-size="11" style="font-variant-numeric:tabular-nums">${v}</text>`).join('')}
+      <line x1="${M.l}" x2="${M.l+iw}" y1="${M.t+ih}" y2="${M.t+ih}" stroke="var(--axis)" stroke-width="1"/>
+      ${xlab.map((t,i) => t ? `<text x="${X(i).toFixed(1)}" y="${M.t+ih+20}" text-anchor="middle"
+              fill="var(--muted)" font-size="11">${esc(t)}</text>` : '').join('')}
+      <line id="cross" x1="0" x2="0" y1="${M.t}" y2="${M.t+ih}" stroke="var(--axis)" stroke-width="1" opacity="0"/>
+      ${lines}${dots}
+      ${ends.map(e => `<text x="${M.l+iw+9}" y="${(e.y+4).toFixed(1)}" fill="var(--s${e.slot})"
+          font-size="12" font-weight="600">${esc(e.name)} <tspan fill="var(--muted)"
+          style="font-variant-numeric:tabular-nums">${e.v}</tspan></text>`).join('')}
+      <rect id="hit" x="${M.l}" y="${M.t}" width="${iw}" height="${ih}" fill="transparent"/>
+    </svg>
+    <div class="tip" id="tip"></div>`;
+
+  const svg = box.querySelector('svg'), tip = el('tip'), cross = box.querySelector('#cross');
+  const move = ev => {
+    const r = svg.getBoundingClientRect();
+    const px = (ev.clientX - r.left) / r.width * W;
+    let i = n === 1 ? 0 : Math.round((px - M.l) / (iw / (n-1)));
+    i = Math.max(0, Math.min(n-1, i));
+    cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.setAttribute('opacity','1');
+    const rows = shown.map(s => ({name:s.name, slot:s.slot, v:s.vals[i]}))
+                      .sort((a,b) => b.v - a.v);
+    tip.innerHTML = `<b>${esc(POLLS[i].label)}</b>` + rows.map(x =>
+      `<div class="tiprow"><span class="lgsw" style="background:var(--s${x.slot})"></span>
+       <span class="nm">${esc(x.name)}</span><span class="vl">${x.v}</span></div>`).join('');
+    tip.style.opacity = 1;
+    const bx = box.getBoundingClientRect();
+    const left = (X(i) / W) * bx.width;
+    tip.style.left = Math.min(Math.max(8, left + 14), bx.width - tip.offsetWidth - 8) + 'px';
+    tip.style.top  = Math.max(8, (ev.clientY - bx.top) - tip.offsetHeight/2) + 'px';
+  };
+  svg.addEventListener('mousemove', move);
+  svg.addEventListener('mouseleave', () => { tip.style.opacity = 0; cross.setAttribute('opacity','0'); });
+}
+
+/* --- big board --- */
+function drawBoard(poll, rows){
+  const owner = {};
+  ROSTER.forEach(p => p.picks.forEach(id => owner[id] = p));
+
+  const line = (rank, id, pts, isRv) => {
+    const o = owner[id];
+    return `<div class="brow">
+      <span class="brank">${rank}</span>
+      <span class="bteam">${esc(tname(id))}</span>
+      ${o ? `<span class="owner"><span class="swatch" style="background:var(--s${o.slot})"></span>${esc(o.name)}</span>`
+          : `<span class="owner free">undrafted</span>`}
+      <span class="bpts">${pts || ''}</span></div>`;
+  };
+
+  const top25 = poll.ranks.map(r => line(r.rank, r.id, pointsForRank(r.rank))).join('');
+  const rv = poll.others.slice(0, 8).map((o,i) =>
+    line(i < RV_SLOTS ? 'RV' + (i+1) : '&mdash;', o.id, i < RV_SLOTS ? RV_BONUS : 0)).join('');
+
+  const scoring = new Set([...poll.ranks.map(r => r.id), ...poll.others.slice(0,RV_SLOTS).map(o => o.id)]);
+  const unpicked = poll.ranks.filter(r => !owner[r.id]);
+  const dead = [];
+  ROSTER.forEach(p => p.picks.forEach(id => { if(!scoring.has(id)) dead.push({id, p}); }));
+
+  el('p-board').innerHTML = `
+    <div class="boardgrid">
+      <div class="card">
+        <div class="chead"><span class="ctitle">AP Top 25</span>
+          <span class="cnote">${esc(poll.label)}</span></div>
+        ${top25}
+      </div>
+      <div>
+        <div class="card">
+          <div class="chead"><span class="ctitle">Also receiving votes</span>
+            <span class="cnote">top 3 score ${RV_BONUS} pts</span></div>
+          ${rv || '<div class="empty">None listed.</div>'}
+        </div>
+        <div class="card">
+          <div class="chead"><span class="ctitle">Left on the board</span>
+            <span class="cnote">ranked, nobody drafted them</span></div>
+          ${unpicked.length ? unpicked.map(r => line(r.rank, r.id, pointsForRank(r.rank))).join('')
+                            : '<div class="empty">Every ranked team is owned.</div>'}
+        </div>
+        <div class="card">
+          <div class="chead"><span class="ctitle">Dead weight</span>
+            <span class="cnote">drafted, scoring zero &middot; ${dead.length} of ${ROSTER.length*6}</span></div>
+          ${dead.length ? dead.map(d => `<div class="brow">
+              <span class="brank">&mdash;</span>
+              <span class="bteam">${esc(tname(d.id))}</span>
+              <span class="owner"><span class="swatch" style="background:var(--s${d.p.slot})"></span>${esc(d.p.name)}</span>
+              <span class="bpts">0</span></div>`).join('')
+            : '<div class="empty">Everyone&rsquo;s teams are scoring.</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---------- chrome ---------- */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  document.querySelectorAll('.panel').forEach(p => p.hidden = (p.id !== 'p-' + t.dataset.p));
+});
+const themeBtn = el('themeBtn');
+const saved = localStorage.getItem('appickem:theme');
+if(saved) document.documentElement.setAttribute('data-theme', saved);
+themeBtn.onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : cur === 'light' ? 'dark'
+    : (matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('appickem:theme', next);
+  if(POLLS.length) draw();
+};
+
+loadPolls();
+</script>
+</body>
+</html>
