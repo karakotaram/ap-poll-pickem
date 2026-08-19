@@ -192,20 +192,51 @@ HARD RULES:
 
 Return ONLY a JSON object mapping each game id to its blurb string: {"401756789": "..."}.`;
 
-const body = {
-  model: GROQ_MODEL,
-  temperature: 0.85,
-  max_tokens: 1600,
-  response_format: { type: 'json_object' },
-  messages: [
+const messages = [
     { role: 'system', content: SYSTEM },
     { role: 'user', content:
         `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first.\n\n` +
         `Each game is assigned a REQUIRED opening angle. Obey it — it exists so the blurbs don't all read the same:\n` +
         games.map((g, i) => `  ${g.facts.id} (${g.facts.matchup}) -> ${ANGLES[i % ANGLES.length]}`).join('\n') +
         `\n\n${JSON.stringify(games.map(g => g.facts), null, 1)}` },
-  ],
-};
+];
+
+// gpt-oss models spend a large share of max_tokens on internal reasoning, so
+// the budget has to cover reasoning + the JSON payload or the object arrives
+// truncated and Groq rejects it with json_validate_failed.
+const MAX_TOKENS = 6000;
+
+async function callGroq(jsonMode) {
+  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.85,
+      max_tokens: MAX_TOKENS,
+      ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+      messages,
+    }),
+  });
+  if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  const d = await r.json();
+  return d.choices?.[0]?.message?.content || '';
+}
+
+// Pull the first balanced {...} out of a free-text reply.
+function extractJson(text) {
+  const i = text.indexOf('{');
+  if (i < 0) return null;
+  let depth = 0, inStr = false, esc = false;
+  for (let j = i; j < text.length; j++) {
+    const c = text[j];
+    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === '{') depth++;
+    else if (c === '}' && --depth === 0) return text.slice(i, j + 1);
+  }
+  return null;
+}
 
 if (DRY_RUN) {
   console.log('--- SYSTEM PROMPT ---\n' + SYSTEM);
@@ -217,14 +248,18 @@ if (DRY_RUN) {
 
 let out = {};
 try {
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'authorization': `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 300)}`);
-  const d = await r.json();
-  const parsed = JSON.parse(d.choices?.[0]?.message?.content || '{}');
+  let raw;
+  try {
+    raw = await callGroq(true);
+  } catch (e) {
+    // Strict JSON mode can fail outright (json_validate_failed). Retry in plain
+    // mode and dig the object out ourselves rather than losing the whole run.
+    console.error('json mode failed, retrying without it:', e.message);
+    raw = await callGroq(false);
+  }
+  const jsonText = extractJson(raw);
+  if (!jsonText) throw new Error('no JSON object in model reply');
+  const parsed = JSON.parse(jsonText);
   const valid = new Set(games.map(g => g.facts.id));
   for (const [k, v] of Object.entries(parsed)) {
     if (valid.has(String(k)) && typeof v === 'string' && v.trim()) out[String(k)] = v.trim().slice(0, 400);
