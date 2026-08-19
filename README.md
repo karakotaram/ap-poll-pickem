@@ -91,16 +91,41 @@ model is given. Override the model with `GROQ_MODEL=...` (default
 
 ### Guardrails
 
-- The prompt forbids inventing stats, injuries, quotes, records, or scores, and
-  restricts the model to the supplied facts.
-- Model output is HTML-escaped before rendering; only player names from the
-  roster are re-emphasised, so nothing the model writes can inject markup.
-- A blurb is only shown if it was generated for the week currently on screen
-  and is less than 8 days old.
-- Finished games always use the factual result line — the column was written
-  before kickoff.
-- If Groq fails, the script exits non-zero without writing, leaving the last
-  good `commentary.json` in place.
+Prompt instructions turned out to be a request, not a guarantee — across ten
+generations the model broke its own rules roughly one blurb in six. So every
+rule that can be checked is checked in code, and any blurb that fails is
+dropped (the page falls back to its built-in text for that game).
+
+**Deterministic checks** in `validate()`:
+- **Numbers** — every figure in a blurb must trace to that game's facts or a
+  pool constant, with 0.5 tolerance so rounding a 9.5 line to "nine" passes.
+  Caught `"Jim's five-point cushion"` on a team worth 25.
+- **Banned phrases** — `lock`, `no-brainer`, `sure thing`, `will win` etc.,
+  because the prompt ban alone did not hold.
+- **Neutral sites** — no home/away/road language when `neutralSite` is true.
+  Caught both `"home-field advantage"` at Lambeau and `"a road test"` at a
+  neutral-site kickoff.
+
+**Audit pass** — a second cold-temperature call fact-checks each surviving
+blurb against only that game's facts, targeting semantic errors numbers can't
+catch: inverted exposure, claims about the standings race, treating an outcome
+as settled. It is told explicitly not to flag tone. Caught `"Jim is playing
+with house money"` when Jim had 5 points exposed and Merc had 0.
+
+**Prompt-side**, the model is told how scoring actually works (points come
+from AP position — a win defends a ranking, it does not earn points), is not
+given the standings at all (it kept inventing a race), and is barred from
+restating anything the card already displays.
+
+**Other:**
+- Output is HTML-escaped before rendering; only roster names are
+  re-emphasised, so model output cannot inject markup.
+- A blurb is used only if generated for the week on screen and under 8 days old.
+- Finished games always use the factual result line.
+- If Groq fails, the script exits without writing, leaving the last good file.
+
+Expect 3-5 of 6 blurbs to survive in a typical run. That is the system working:
+a dropped blurb costs nothing, a published falsehood would.
 
 ## Scoring
 
