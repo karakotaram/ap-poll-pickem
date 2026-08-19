@@ -1078,8 +1078,6 @@ function drawMatchups(){
   host.innerHTML = `
     <div class="mzhead">
       <span class="mztitle">Games that matter${GAMES.week ? ' · Week ' + GAMES.week : ''}</span>
-      <span class="cnote">ranked by what they do to the standings, not by national hype${
-        usableColumn ? ` &middot; column written by ${esc(COLUMN.model || 'AI')}` : ''}</span>
     </div>
     <div class="mzgrid">${cards}</div>`;
 }
