@@ -36,6 +36,15 @@ if (!DRY_RUN) {
   }
 }
 
+if (process.env.LIST_MODELS === '1') {
+  const r = await fetch('https://api.groq.com/openai/v1/models', {
+    headers: { authorization: `Bearer ${GROQ_KEY}` } });
+  const d = await r.json();
+  (d.data || []).map(m => `${m.id}  ctx=${m.context_window ?? '?'}  owner=${m.owned_by ?? '?'}`)
+                .sort().forEach(l => console.log(l));
+  process.exit(0);
+}
+
 const RANK_API = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football/seasons';
 const SB_API   = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard';
 
@@ -142,6 +151,15 @@ const games = (sb.events || []).map(e => {
 if (!games.length) { console.log('no pool-relevant games this week — nothing to write'); process.exit(0); }
 
 /* ---------- ask Groq ---------- */
+const ANGLES = [
+  'open on what the betting line says about somebody\'s draft pick',
+  'open on the asymmetry — who is risking real points and who is playing with house money',
+  'open on the venue, the named kickoff event, or the fact that it is a conference game',
+  'open by naming the owner who looks worst if this goes wrong',
+  'open on the distance between where a team was drafted and where it actually sits',
+  'open on the money — the $1,600 pot and who is drifting away from it',
+];
+
 const SYSTEM = `You write a short weekly column for an eight-person college football pick'em pool.
 
 THE POOL: ${ROSTER.map(p => p.name).join(', ')}. Each drafted six teams before the season and scores off the AP Top 25 weekly: 25 pts for No.1, 20 for Nos.2-6, 15 for 7-10, 10 for 11-15, 5 for 16-20, 3 for 21-24, 2 for No.25, 2 for a top-3 also-receiving-votes team. $200 each, $1,600 pot, paid on the final poll before the playoffs (40%) and after (60%).
@@ -166,10 +184,11 @@ STYLE SAMPLES — match this register, never reuse the content:
 HARD RULES:
 - Use ONLY the facts in the JSON provided. You have no other knowledge of these teams.
 - Never invent statistics, records, injuries, quotes, coaches, players, or history.
-- Never predict a final score or declare a winner.
+- Never predict a final score, declare a winner, or call anything decided. A spread is a market opinion, not a result. BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
 - Refer to owners by the exact names above.
-- 1-3 sentences per game, 40 words max. Plain text, no markdown.
-- Every blurb in the response must open differently from the others.
+- EXACTLY 2 or 3 sentences per game. Never one. 55 words max.
+- Do not use the construction "X, while Y" in more than one blurb.
+- Every blurb must open differently from the others.
 
 Return ONLY a JSON object mapping each game id to its blurb string: {"401756789": "..."}.`;
 
@@ -180,7 +199,11 @@ const body = {
   response_format: { type: 'json_object' },
   messages: [
     { role: 'system', content: SYSTEM },
-    { role: 'user', content: `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first:\n\n${JSON.stringify(games.map(g => g.facts), null, 1)}` },
+    { role: 'user', content:
+        `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first.\n\n` +
+        `Each game is assigned a REQUIRED opening angle. Obey it — it exists so the blurbs don't all read the same:\n` +
+        games.map((g, i) => `  ${g.facts.id} (${g.facts.matchup}) -> ${ANGLES[i % ANGLES.length]}`).join('\n') +
+        `\n\n${JSON.stringify(games.map(g => g.facts), null, 1)}` },
   ],
 };
 

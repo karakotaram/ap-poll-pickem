@@ -7,6 +7,15 @@ on:
     - cron: '0 13 * * 2'   # Tue 13:00 UTC  =  9am ET / 6am PT
     - cron: '0 15 * * 5'   # Fri 15:00 UTC  = 11am ET / 8am PT
   workflow_dispatch:        # manual run from the Actions tab
+    inputs:
+      model:
+        description: 'Groq model id (blank = openai/gpt-oss-120b)'
+        required: false
+        default: ''
+      list_models:
+        description: 'Just list available Groq models and stop'
+        type: boolean
+        default: false
 
 concurrency:
   group: commentary
@@ -28,6 +37,8 @@ jobs:
       - name: Generate commentary
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ inputs.model }}
+          LIST_MODELS: ${{ inputs.list_models && '1' || '0' }}
         run: node scripts/generate-commentary.mjs
 
       - name: Commit if changed
