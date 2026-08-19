@@ -312,6 +312,40 @@ function validate(blurb, facts) {
   return null;
 }
 
+async function verify(blurbs, byId) {
+  const items = Object.entries(blurbs).map(([id, text]) => ({
+    id, blurb: text, facts: byId.get(id),
+    standings: STANDINGS.map(r => `${r.place}. ${r.name} ${r.points}`).join(', '),
+  }));
+
+  const sys = `You are a fact-checker. For each item you get a blurb and the ONLY facts that exist about that game, plus the current pool standings.
+
+Mark ok=false if the blurb states anything the facts do not support. Specifically catch:
+- claiming someone leads, trails, or is ahead when the standings say otherwise
+- inverting who has points at risk (the owner with more points has MORE to lose; an owner whose team is worth 0 is the one playing with house money)
+- claiming home-field advantage when neutralSite is true
+- any number, record, statistic, injury, or history not present in the facts
+- predicting a winner or a final score as settled fact
+
+Do NOT mark ok=false for opinion, sarcasm, insults, or tone. Rudeness is intended. Only factual support matters.
+
+Return ONLY JSON: {"<id>": {"ok": true|false, "reason": "<short>"}, ...}`;
+
+  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: GROQ_MODEL, temperature: 0, max_tokens: MAX_TOKENS,
+      messages: [{ role: 'system', content: sys },
+                 { role: 'user', content: JSON.stringify(items, null, 1) }],
+    }),
+  });
+  if (!r.ok) throw new Error(`groq ${r.status}`);
+  const txt = (await r.json()).choices?.[0]?.message?.content || '';
+  const j = extractJson(txt);
+  return j ? JSON.parse(j) : {};
+}
+
 let out = {};
 try {
   let raw;
@@ -336,6 +370,24 @@ try {
     if (problem) { console.error(`rejected ${k}: ${problem}\n   ${blurb}`); rejected++; continue; }
     out[String(k)] = blurb;
   }
+  // Second pass: a fresh, cold-temperature call whose only job is to find
+  // claims the facts do not support. Catches semantic errors (inverted
+  // asymmetry, invented standings) that the numeric check cannot see.
+  if (Object.keys(out).length) {
+    try {
+      const audit = await verify(out, byId);
+      for (const [id, verdict] of Object.entries(audit)) {
+        if (verdict && verdict.ok === false) {
+          console.error(`audit rejected ${id}: ${verdict.reason}\n   ${out[id]}`);
+          delete out[id];
+          rejected++;
+        }
+      }
+    } catch (e) {
+      console.error('audit pass failed, keeping validated blurbs:', e.message);
+    }
+  }
+
   if (rejected) console.error(`${rejected} blurb(s) rejected; page falls back to built-in text for those`);
   if (!Object.keys(out).length) throw new Error('model returned no usable blurbs');
 } catch (err) {
