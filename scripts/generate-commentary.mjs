@@ -179,6 +179,8 @@ const SYSTEM = `You write a short weekly column for an eight-person college foot
 
 THE POOL: ${ROSTER.map(p => p.name).join(', ')}. Each drafted six teams before the season and scores off the AP Top 25 weekly: 25 pts for No.1, 20 for Nos.2-6, 15 for 7-10, 10 for 11-15, 5 for 16-20, 3 for 21-24, 2 for No.25, 2 for a top-3 also-receiving-votes team. $200 each, $1,600 pot, paid on the final poll before the playoffs (40%) and after (60%).
 
+WHAT THE LINE MEANS — a line like "ND -20.5" means Notre Dame is FAVOURED and must win by more than 20.5. The favourite is never "facing a hole", "in a deficit", "an underdog", or "climbing back"; that is the other team's position. A favourite can only "fail to cover", "blow a cushion", or "win without covering". Get this backwards and the blurb is thrown away.
+
 HOW SCORING ACTUALLY WORKS — you have been getting this wrong. Points come from where a team sits in the AP poll, NOT from winning a game. Winning a game adds nothing; it defends a team's existing ranking. Losing subtracts nothing directly; it risks the team sliding in next week's poll, and the slide is where points are lost. So never write that someone "gains 15 points" by covering, or "collects" points by winning. The correct framing is exposure: the owner of a highly ranked team has points to LOSE, and the owner of an unranked team has nothing to lose and something to gain only if their team climbs into the poll.
 
 CRITICAL — YOU ARE NOT A SCOREBOARD. The card directly above your text already shows the reader: both teams' ranks, both owners, both point values, the total at stake, the betting line, the TV network, and the venue. Restating ANY of those as information is wasted words. "Doak Campbell Stadium hosts the clash, televised on ESPN" tells the reader nothing they cannot see. "Murph's Louisville is No.24, worth 3 points" is worse.
@@ -310,7 +312,44 @@ const BANNED = ['lock', 'inevitable', 'safe bet', 'cash cow', 'free lunch', 'sur
   'collects the pot', 'buckle up', 'must-win', 'all eyes on', 'for the ages',
   'will win', 'should win', 'cannot lose', "can't lose"];
 
+/* Favourite/underdog inversion: "Notre Dame collapses under a 20.5-point hole"
+   when Notre Dame is LAYING 20.5. The number is real, so the numeric check
+   passes — only the direction is wrong. */
+const DOG_LANG = /\b(hole|deficit|underdog|upset|long ?shot|climb|comeback|trailing|trails)\b/i;
+const FAV_LANG = /\b(favou?red|favou?rite|laying|giving)\b/i;
+
+function favouriteSide(facts) {
+  const m = /^\s*([A-Za-z&.'\- ]+?)\s*-\s*[\d.]+\s*$/.exec(facts.line || '');
+  if (!m) return null;
+  const ab = m[1].trim().toUpperCase();
+  if ((facts.home.abbr || '').toUpperCase() === ab) return { fav: facts.home, dog: facts.away };
+  if ((facts.away.abbr || '').toUpperCase() === ab) return { fav: facts.away, dog: facts.home };
+  return null;
+}
+
+function mentions(sentence, side) {
+  const names = [side.name, side.abbr].filter(Boolean)
+    .map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return names.some(n => new RegExp(`\\b${n}\\b`, 'i').test(sentence));
+}
+
+function directionProblem(blurb, facts) {
+  const sides = favouriteSide(facts);
+  if (!sides) return null;
+  for (const sentence of blurb.split(/(?<=[.!?])\s+/)) {
+    const hasFav = mentions(sentence, sides.fav), hasDog = mentions(sentence, sides.dog);
+    // Only judge sentences about one team; a sentence naming both is ambiguous.
+    if (hasFav && !hasDog && DOG_LANG.test(sentence))
+      return `describes the favourite (${sides.fav.name}) in underdog terms`;
+    if (hasDog && !hasFav && FAV_LANG.test(sentence))
+      return `describes the underdog (${sides.dog.name}) as the favourite`;
+  }
+  return null;
+}
+
 function validate(blurb, facts) {
+  const dir = directionProblem(blurb, facts);
+  if (dir) return dir;
   const low = blurb.toLowerCase();
   const hit = BANNED.find(b => new RegExp(`\\b${b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(low));
   if (hit) return `banned phrase: "${hit}"`;
@@ -335,6 +374,7 @@ async function verify(blurbs, byId) {
 
 Mark ok=false if the blurb states anything the facts do not support. Specifically catch:
 - treating a win as earning points or a loss as deducting them. Points come from AP poll position only; a win defends a ranking, a loss risks a slide in next week's poll. "Gains 15 points by covering" is wrong.
+- favourite/underdog inversion: in "ND -20.5" Notre Dame is favoured. Describing the favourite as facing a hole, deficit, or upset climb is wrong.
 - inverting exposure: the owner of the HIGHER-ranked, higher-point team has more to lose; the owner of a 0-point team is the one risking nothing
 - ANY claim about the pool standings or the overall race (who leads, trails, is ahead, is winning, is collecting the pot) — the writer was not given standings, so any such claim is unsupported
 - treating an outcome as settled or near-certain ("almost a certainty", "no room for surprise", "sits safely")
