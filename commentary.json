@@ -1,12 +1,15 @@
 {
-  "generated": "2026-08-19T18:46:32.705Z",
+  "generated": "2026-08-19T18:47:43.792Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "Ty is exposed to a nine‑and‑a‑half hole, a risk Karan simply doesn't face. LSU's favored status shields Karan's ten‑point draft from the spread.",
-    "401856661": "Ty's Ole Miss draft feels justified; a six‑point spread signals that Murph's Louisville must overperform to matter. If the Rebels cover, Ty gains a clean 15‑point boost while Murph watches his three points dwindle.",
-    "401858438": "Ty looks terrible if Notre Dame lives up to that 20‑point line. His Wisconsin pick brings zero points, so a blowout wipes any chance of a comeback."
+    "401856660": "Karan’s LSU pick carries a double‑digit exposure, something Ty doesn’t face with his two‑point Clemson gamble. The -9.5 line only widens the gap between their risk profiles.",
+    "401856661": "Ty’s Ole Miss pick looks like a giveaway; the -6.5 line treats it as a free win. Murph’s Louisville gamble now has to survive a road test against a favored opponent.",
+    "401858212": "Jim is betting his draft on the line, and Merc is sitting on house money at home. SMU’s -2.5 edge gives Jim a thin cushion, but any slip hands Merc a free ride.",
+    "401858432": "Jim’s weekend is a lock; Ohio State walks onto the field as a 25‑point juggernaut. No matter the opponent, the points at stake stay firmly on Jim’s side.",
+    "401858433": "John’s Oregon haul dwarfs Ty’s two‑point Boise draft. The -24.5 spread makes John’s pick a no‑brainer, leaving Ty’s gamble looking even smaller.",
+    "401858438": "Mike looks terrible if Notre Dame slips; a 20‑point loss would flip his draft upside down. Ty’s Wisconsin pick is a low‑risk side bet, but it won’t save Mike’s exposure."
   }
 }
