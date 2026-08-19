@@ -206,6 +206,7 @@ HARD RULES:
 - Never invent statistics, records, injuries, quotes, coaches, players, or history.
 - EVERY NUMBER you write must appear in that game's JSON or the standings block. Do not compute, infer, or invent figures. If you are unsure of a number, do not use one.
 - Respect venueNote exactly. Never claim home-field advantage at a neutral site.
+- Do not talk about "the race", "the leaderboard", "swings", or who is gaining on whom. You were not given standings and any such claim will be thrown away. Write about THIS GAME and the two draft picks in it.
 - You do NOT know the standings. Never say anyone leads, trails, is ahead, is behind, is winning, or is collecting the pot. The standings table is rendered below you; it is not your subject.
 - Never predict a final score, declare a winner, or call anything decided or near-certain. BANNED: "almost a certainty", "no room for surprise", "sits safely", "collects the pot", "before the season even starts". A spread is a market opinion, not a result. BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
 - Refer to owners by the exact names above.
@@ -307,7 +308,9 @@ function allowedNumbers(facts) {
 
 // Banned in the prompt, so also banned in code — the model ignores the prompt
 // roughly one blurb in six.
-const BANNED = ['lock', 'inevitable', 'safe bet', 'cash cow', 'free lunch', 'sure thing',
+const BANNED = ['swing the pool', 'rewrite the leaderboard', 'leaderboard', 'pool balance',
+  'biggest swing', 'flip the standings', 'the race',
+  'lock', 'inevitable', 'safe bet', 'cash cow', 'free lunch', 'sure thing',
   'no-brainer', 'no brainer', 'almost a certainty', 'no room for surprise', 'sits safely',
   'collects the pot', 'buckle up', 'must-win', 'all eyes on', 'for the ages',
   'will win', 'should win', 'cannot lose', "can't lose"];
@@ -445,12 +448,15 @@ try {
   }
 
   if (rejected) console.error(`${rejected} blurb(s) rejected; page falls back to built-in text for those`);
-  if (!Object.keys(out).length) throw new Error('model returned no usable blurbs');
+  if (!Object.keys(out).length) console.error('every blurb was rejected — publishing an empty set so stale ones are removed');
 } catch (err) {
-  // Never break the site: leave the previous commentary.json in place.
+  // The call itself failed (network/auth/parse). Keep the last good file.
   console.error('generation failed:', err.message);
   process.exit(1);
 }
+// Note: reaching here means we DID get a response. Even if every blurb was
+// rejected we still write, so a previously-published bad blurb is removed
+// rather than lingering because this run happened to produce nothing.
 
 await writeFile(new URL('../commentary.json', import.meta.url), JSON.stringify({
   generated: new Date().toISOString(),
