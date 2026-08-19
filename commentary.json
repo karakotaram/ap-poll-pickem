@@ -1,13 +1,14 @@
 {
-  "generated": "2026-08-19T18:49:03.779Z",
+  "generated": "2026-08-19T18:54:48.614Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "Karan sits on ten poll points that can evaporate if LSU stumbles. Ty’s Clemson only carries two, so his exposure is minimal.",
-    "401858212": "Merc rolls the dice with house money as his Florida State carries zero poll value. Jim, on the other hand, has five points on the line and can’t afford a slip.",
-    "401858432": "Jim’s Ohio State brings a straight 25 points to his weekend. There’s no hedge, just the massive poll weight he can only lose.",
-    "401858438": "Mike looks terrible if his No.4 Notre Dame collapses under a 20.5-point hole. Ty’s Wisconsin has nothing at stake, so the fallout lands squarely on Mike."
+    "401856660": "Karan's LSU pick sits on a ten‑point exposure; the -9.5 line makes a loss look plausible. Ty's Clemson draft carries just two points, so his weekend is virtually insulated.",
+    "401856661": "Ty's Ole Miss pick looks airtight; the -6.5 spread already assumes a solid win, so his 15‑point haul is hard to see bleed. Murph's Louisville sits on a three‑point draft that can vanish with a single upset.",
+    "401858212": "SMU's -2.5 spread forces Jim's draft onto the line; his five‑point pick must win outright. Merc watches from the sidelines with house money, his Florida State slate worth nothing regardless of the result.",
+    "401858432": "Jim's Ohio State carries a 25‑point draft and a -50.5 line that leaves no margin for error. Anything less than a blowout wipes his entire stake.",
+    "401858438": "Mike looks the ugliest if the Irish stumble; a 20‑point draft hangs on a 20.5‑point spread that leaves no cushion. Ty can breathe easy with nothing at stake."
   }
 }
