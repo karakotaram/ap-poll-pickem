@@ -378,10 +378,21 @@ const MARGIN_LANG  = /\b(cover(s|ed|ing)?|spread|blowout|margin|point line|by mo
 const POINTS_NOUN  = /\b(stake|draft|haul|points?|pts|payday|value)\b/i;
 const CAUSAL_VERB  = /\b(wipes?|wiped|erases?|gains?|collects?|earns?|banks?|boosts?|vanish(es|ed)?|evaporates?|bleeds?|hangs? on|rides? on|depends? on|hinges? on|protects?|shields?|secures?|saves?)\b/i;
 
+/* Whether a team covers never affects an owner — only the poll does. So any
+   sentence that names an owner and talks about covering is wrong, even with
+   no points word in it ("Mike looks vulnerable if Notre Dame fails to cover").
+   Deliberately excludes bare "margin" and "spread", which are legitimate as
+   evidence ("has little margin", "the spread suggests"). */
+const OUTCOME_MARGIN = /\b(covers?|covered|covering|blowout|margin of victory|win(?:ning)? by more than)\b/i;
+const OWNER_NAMES = ROSTER.map(p => p.name);
+
 function conflationProblem(blurb) {
   for (const sentence of blurb.split(/(?<=[.!?])\s+/)) {
     if (MARGIN_LANG.test(sentence) && POINTS_NOUN.test(sentence) && CAUSAL_VERB.test(sentence))
       return 'ties pool points to covering the spread (points come from poll position, not margin)';
+    if (OUTCOME_MARGIN.test(sentence) &&
+        OWNER_NAMES.some(n => new RegExp(`\\b${n}\\b`).test(sentence)))
+      return 'makes an owner\'s outcome depend on covering (covering affects nobody\'s points)';
   }
   return null;
 }
@@ -477,6 +488,7 @@ async function verify(blurbs, byId) {
 
 Mark ok=false if the blurb states anything the facts do not support. Specifically catch:
 - treating a win as earning points or a loss as deducting them. Points come from AP poll position only; a win defends a ranking, a loss risks a slide in next week's poll. "Gains 15 points by covering" is wrong.
+- Whether a team COVERS the spread is irrelevant to everyone in this pool. Never write that an owner is vulnerable, safe, exposed or rewarded because a team did or did not cover. Only the game result and the resulting poll movement matter.
 - tying pool points to the spread or to covering. Points come from AP poll position and change only when the poll updates. "A 20-point draft hangs on a 20.5-point spread" and "anything less than a blowout wipes his stake" are both wrong. Losing the GAME risking a poll slide is fine; covering is irrelevant to points.
 - favourite/underdog inversion: in "ND -20.5" Notre Dame is favoured. Describing the favourite as facing a hole, deficit, or upset climb is wrong.
 - inverting exposure: the owner of the HIGHER-ranked, higher-point team has more to lose; the owner of a 0-point team is the one risking nothing
