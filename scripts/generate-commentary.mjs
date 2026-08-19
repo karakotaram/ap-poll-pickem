@@ -510,6 +510,13 @@ try {
 // rejected we still write, so a previously-published bad blurb is removed
 // rather than lingering because this run happened to produce nothing.
 
+if (process.env.NO_WRITE === '1') {
+  console.log('NO_WRITE — result not published:');
+  for (const [id, text] of Object.entries(out)) console.log(`  ${id}: ${text}`);
+  console.log(`(${Object.keys(out).length} of ${games.length} survived validation)`);
+  process.exit(0);
+}
+
 await writeFile(new URL('../commentary.json', import.meta.url), JSON.stringify({
   generated: new Date().toISOString(),
   model: GROQ_MODEL,

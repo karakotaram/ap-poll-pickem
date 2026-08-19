@@ -16,6 +16,10 @@ on:
         description: 'Just list available Groq models and stop'
         type: boolean
         default: false
+      no_write:
+        description: 'Generate and print, but do not publish (safe model trials)'
+        type: boolean
+        default: false
 
 concurrency:
   group: commentary
@@ -39,6 +43,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ inputs.model }}
           LIST_MODELS: ${{ inputs.list_models && '1' || '0' }}
+          NO_WRITE: ${{ inputs.no_write && '1' || '0' }}
         run: node scripts/generate-commentary.mjs
 
       - name: Commit if changed
