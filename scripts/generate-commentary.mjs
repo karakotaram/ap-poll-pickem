@@ -170,7 +170,7 @@ const ANGLES = [
   'lead with a verdict on somebody\'s draft pick, using the line as evidence rather than as information',
   'lead with the asymmetry — name who is playing with house money and who actually has something to lose',
   'lead by naming the owner who looks worst if this goes wrong',
-  'lead with what this does to the standings race between two named owners',
+  'lead with what one owner is exposed to that the other simply is not',
   'lead with the distance between what somebody thought they drafted and what they actually have',
   'lead with a flat, unhedged read on one owner\'s weekend',
 ];
@@ -202,7 +202,8 @@ HARD RULES:
 - Never invent statistics, records, injuries, quotes, coaches, players, or history.
 - EVERY NUMBER you write must appear in that game's JSON or the standings block. Do not compute, infer, or invent figures. If you are unsure of a number, do not use one.
 - Respect venueNote exactly. Never claim home-field advantage at a neutral site.
-- Never predict a final score, declare a winner, or call anything decided. A spread is a market opinion, not a result. BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
+- You do NOT know the standings. Never say anyone leads, trails, is ahead, is behind, is winning, or is collecting the pot. The standings table is rendered below you; it is not your subject.
+- Never predict a final score, declare a winner, or call anything decided or near-certain. BANNED: "almost a certainty", "no room for surprise", "sits safely", "collects the pot", "before the season even starts". A spread is a market opinion, not a result. BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
 - Refer to owners by the exact names above.
 - EXACTLY 2 or 3 sentences per game. Never one. 55 words max.
 - Do not use the construction "X, while Y" in more than one blurb.
@@ -214,8 +215,7 @@ const messages = [
     { role: 'system', content: SYSTEM },
     { role: 'user', content:
         `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first.\n\n` +
-        `CURRENT STANDINGS (the only standings that exist — never claim anything else about the race):\n` +
-        STANDINGS.map(r => `  ${r.place}. ${r.name} — ${r.points} pts`).join('\n') + `\n\n` +
+
         `Each game is assigned a REQUIRED opening angle. Obey it — it exists so the blurbs don't all read the same:\n` +
         games.map((g, i) => `  ${g.facts.id} (${g.facts.matchup}) -> ${ANGLES[i % ANGLES.length]}`).join('\n') +
         `\n\n${JSON.stringify(games.map(g => g.facts), null, 1)}` },
@@ -321,7 +321,8 @@ async function verify(blurbs, byId) {
   const sys = `You are a fact-checker. For each item you get a blurb and the ONLY facts that exist about that game, plus the current pool standings.
 
 Mark ok=false if the blurb states anything the facts do not support. Specifically catch:
-- claiming someone leads, trails, or is ahead when the standings say otherwise
+- ANY claim about the pool standings or the overall race (who leads, trails, is ahead, is winning, is collecting the pot) — the writer was not given standings, so any such claim is unsupported
+- treating an outcome as settled or near-certain ("almost a certainty", "no room for surprise", "sits safely")
 - inverting who has points at risk (the owner with more points has MORE to lose; an owner whose team is worth 0 is the one playing with house money)
 - claiming home-field advantage when neutralSite is true
 - any number, record, statistic, injury, or history not present in the facts
