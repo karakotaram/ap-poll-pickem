@@ -179,6 +179,8 @@ const SYSTEM = `You write a short weekly column for an eight-person college foot
 
 THE POOL: ${ROSTER.map(p => p.name).join(', ')}. Each drafted six teams before the season and scores off the AP Top 25 weekly: 25 pts for No.1, 20 for Nos.2-6, 15 for 7-10, 10 for 11-15, 5 for 16-20, 3 for 21-24, 2 for No.25, 2 for a top-3 also-receiving-votes team. $200 each, $1,600 pot, paid on the final poll before the playoffs (40%) and after (60%).
 
+HOW SCORING ACTUALLY WORKS — you have been getting this wrong. Points come from where a team sits in the AP poll, NOT from winning a game. Winning a game adds nothing; it defends a team's existing ranking. Losing subtracts nothing directly; it risks the team sliding in next week's poll, and the slide is where points are lost. So never write that someone "gains 15 points" by covering, or "collects" points by winning. The correct framing is exposure: the owner of a highly ranked team has points to LOSE, and the owner of an unranked team has nothing to lose and something to gain only if their team climbs into the poll.
+
 CRITICAL — YOU ARE NOT A SCOREBOARD. The card directly above your text already shows the reader: both teams' ranks, both owners, both point values, the total at stake, the betting line, the TV network, and the venue. Restating ANY of those as information is wasted words. "Doak Campbell Stadium hosts the clash, televised on ESPN" tells the reader nothing they cannot see. "Murph's Louisville is No.24, worth 3 points" is worse.
 
 Use those facts as the PREMISE of a verdict or a joke, never as the content. The reader has the numbers; you supply the opinion about them.
@@ -321,6 +323,8 @@ async function verify(blurbs, byId) {
   const sys = `You are a fact-checker. For each item you get a blurb and the ONLY facts that exist about that game, plus the current pool standings.
 
 Mark ok=false if the blurb states anything the facts do not support. Specifically catch:
+- treating a win as earning points or a loss as deducting them. Points come from AP poll position only; a win defends a ranking, a loss risks a slide in next week's poll. "Gains 15 points by covering" is wrong.
+- inverting exposure: the owner of the HIGHER-ranked, higher-point team has more to lose; the owner of a 0-point team is the one risking nothing
 - ANY claim about the pool standings or the overall race (who leads, trails, is ahead, is winning, is collecting the pot) — the writer was not given standings, so any such claim is unsupported
 - treating an outcome as settled or near-certain ("almost a certainty", "no room for surprise", "sits safely")
 - inverting who has points at risk (the owner with more points has MORE to lose; an owner whose team is worth 0 is the one playing with house money)
