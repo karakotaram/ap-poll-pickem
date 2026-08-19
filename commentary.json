@@ -1,13 +1,13 @@
 {
-  "generated": "2026-08-19T21:07:51.975Z",
+  "generated": "2026-08-19T21:09:27.088Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856661": "Ty’s Ole Miss pick looks secure because the market expects a comfortable win. Murph’s Louisville selection has little margin and must rely on an upset to improve his standing.",
-    "401858212": "Jim risks his points as Merc plays with house money. The line favors SMU, so the market gives Jim a slight edge to protect his draft.",
-    "401858432": "Jim’s weekend hinges entirely on Ohio State maintaining its top position. The line shows a massive expected margin, so any surprise would directly affect his stake.",
-    "401858438": "Mike looks vulnerable if Notre Dame fails to cover a large margin. Ty’s Wisconsin pick carries no points, so his weekend is unaffected by the outcome."
+    "401856660": "Karan faces a sizable exposure with LSU, a team favored by 9.5 points. Ty's Clemson selection carries minimal exposure. The line suggests LSU is expected to win comfortably.",
+    "401856661": "Ty's Ole Miss draft looks safe. The Rebels are favored by 6.5 points, indicating confidence in a solid performance. Murph's Louisville pick has little exposure, so the result matters mainly for Ty.",
+    "401858432": "Jim's weekend is straightforward with Ohio State. His pick holds twenty‑five points, and the -50.5 line shows the team is expected to dominate.",
+    "401858433": "John's Oregon draft is worth twenty points, far above Ty's two‑point Boise State selection. Oregon is favored by 24.5 points, indicating a strong confidence in the higher‑valued pick."
   }
 }
