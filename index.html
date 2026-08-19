@@ -73,6 +73,41 @@ select:hover,.btn:hover{background:var(--surface-2)}
 .bval{font-size:21px;font-weight:660;letter-spacing:-.01em}
 .bval.sm{font-size:15px;font-weight:600}
 
+/* ---------- key matchups ---------- */
+.mzone{margin-bottom:22px}
+.mzhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 2px 10px}
+.mztitle{font-size:15px;font-weight:620}
+.mzgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.mu{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    box-shadow:var(--shadow);padding:14px 16px 15px;display:flex;flex-direction:column;gap:11px}
+.muhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.murk{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);
+      border:1px solid var(--border);border-radius:5px;width:19px;height:19px;
+      display:grid;place-items:center;flex:none}
+.mutag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+       padding:2.5px 7px;border-radius:999px;border:1px solid var(--border);color:var(--ink-2);background:var(--surface-2)}
+.mutag.h2h{color:var(--s8);border-color:color-mix(in srgb,var(--s8) 40%,transparent);
+           background:color-mix(in srgb,var(--s8) 8%,transparent)}
+.mutag.live{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.muwhen{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.muteams{display:flex;flex-direction:column;gap:1px}
+.mut{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;font-size:13.5px}
+.mut.own{background:var(--surface-2)}
+.mut.lost{opacity:.5}
+.mursk{font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);
+       width:30px;flex:none;text-align:right}
+.muname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.murec{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.muown{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-2);flex:none}
+.muown.free{color:var(--muted);font-style:italic}
+.mupts{font-size:13px;font-weight:660;font-variant-numeric:tabular-nums;width:22px;text-align:right;flex:none}
+.musc{font-size:14px;font-weight:680;font-variant-numeric:tabular-nums;width:26px;text-align:right;flex:none}
+.mumeta{font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:5px 9px;
+        border-top:1px solid var(--grid);padding-top:9px}
+.mumeta b{color:var(--ink-2);font-weight:640}
+.mubody{font-size:13px;line-height:1.55;color:var(--ink-2)}
+.mubody em{color:var(--ink);font-style:normal;font-weight:600}
+
 /* ---------- tabs ---------- */
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:22px;overflow-x:auto}
 .tab{
@@ -198,6 +233,8 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
 
 <div class="banner" id="banner"></div>
 
+<section class="mzone" id="matchups"></section>
+
 <div class="tabs" role="tablist">
   <button class="tab" role="tab" aria-selected="true"  data-p="standings">Standings</button>
   <button class="tab" role="tab" aria-selected="false" data-p="payouts">Payouts</button>
@@ -322,8 +359,17 @@ async function fetchSlot(t, w){
   }catch(e){ return null; }
 }
 
-const CACHE_KEY = `appickem:${SEASON}`;
+// Bump SCHEMA whenever the cached object shape changes, so a deploy can't leave
+// users rendering stale data that's missing newly-added fields.
+const SCHEMA = 'v2';
+const CACHE_KEY = `appickem:${SCHEMA}:${SEASON}`;
 const CACHE_TTL = 30 * 60 * 1000;   // 30 min
+
+try{   // drop caches written by an older schema
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('appickem:') && k !== 'appickem:theme' && !k.startsWith(`appickem:${SCHEMA}:`))
+    .forEach(k => localStorage.removeItem(k));
+}catch(e){}
 
 async function loadPolls(){
   // fast paint from cache
@@ -397,6 +443,7 @@ function draw(){
   drawPayouts(rows);
   drawHistory();
   drawBoard(poll, rows);
+  drawMatchups();
 }
 
 /* --- banner --- */
@@ -753,6 +800,253 @@ function drawBoard(poll, rows){
     </div>`;
 }
 
+/* ==================================================================
+   Key matchups — ranks this week's games by what they do to the pool,
+   then writes the blurb from facts the API actually returns.
+   ================================================================== */
+const SB_URL = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard';
+const OWNER = {};
+ROSTER.forEach(p => p.picks.forEach(id => OWNER[id] = p));
+let GAMES = null;
+
+const NOTE_SKIP = /^(FLEX|EARLY|LATE|TBD|AFTERNOON|NIGHT|MORNING|PRIMETIME)\b/i;
+const TIERS = [[1,1,25],[2,6,20],[7,10,15],[11,15,10],[16,20,5],[21,24,3],[25,25,2]];
+const tierOf = r => TIERS.find(t => r >= t[0] && r <= t[1]);
+function nextDownPts(r){
+  const i = TIERS.findIndex(t => r >= t[0] && r <= t[1]);
+  return i < 0 ? 0 : (i + 1 < TIERS.length ? TIERS[i+1][2] : 2);
+}
+
+function parseEvent(e){
+  const c = (e.competitions || [])[0]; if(!c) return null;
+  const cs = c.competitors || []; if(cs.length !== 2) return null;
+  const side = ha => {
+    const t = cs.find(x => x.homeAway === ha) || cs[0];
+    return {id:(t.team||{}).id, name:(t.team||{}).location || '',
+            abbr:(t.team||{}).abbreviation || '',
+            rec:((t.records||[])[0]||{}).summary || '',
+            score:+(t.score||0), winner:!!t.winner};
+  };
+  const od = (c.odds || [])[0] || {};
+  const st = (c.status || {}).type || {};
+  const note = (c.notes || []).find(x => x.headline && !NOTE_SKIP.test(x.headline));
+  return {id:e.id, date:e.date, timeValid:c.timeValid !== false,
+          away:side('away'), home:side('home'),
+          neutral:!!c.neutralSite, conf:!!c.conferenceCompetition,
+          tv:(((c.broadcasts||[])[0]||{}).names||[])[0] || '',
+          venue:(c.venue||{}).fullName || '',
+          state:st.state || 'pre', detail:st.shortDetail || '',
+          line:od.details || '', spread:(od.spread == null ? null : od.spread),
+          note:note ? note.headline : ''};
+}
+
+async function loadGames(){
+  const key = `appickem:${SCHEMA}:games`;
+  try{
+    const c = JSON.parse(localStorage.getItem(key) || 'null');
+    if(c && Date.now() - c.at < 15*60*1000){ GAMES = c.g; drawMatchups(); return; }
+  }catch(e){}
+  try{
+    const r = await fetch(SB_URL + '?groups=80&limit=300', {cache:'no-store'});
+    if(!r.ok) throw 0;
+    const d = await r.json();
+    GAMES = {week:(d.week||{}).number || null,
+             events:(d.events||[]).map(parseEvent).filter(Boolean)};
+    try{ localStorage.setItem(key, JSON.stringify({at:Date.now(), g:GAMES})); }catch(e){}
+  }catch(e){ GAMES = null; }
+  drawMatchups();
+}
+
+/* Impact = pool points on the field, amplified by how close the game is
+   and by whether two different owners are pointed at each other. */
+function analyze(g, sm){
+  const enrich = t => {
+    const sc = sm.get(t.id);
+    return Object.assign({}, t, {
+      pts: sc ? sc.pts : 0,
+      rank: sc && sc.kind === 'ranked' ? sc.rank : null,
+      rv:   sc && sc.kind === 'rv' ? sc.rvPlace : null,
+      owner: OWNER[t.id] || null});
+  };
+  const sides = [enrich(g.away), enrich(g.home)];
+  const owned = sides.filter(s => s.owner);
+  if(!owned.length) return null;
+  const atRisk = owned.reduce((a,b) => a + b.pts, 0);
+  const owners = new Set(owned.map(s => s.owner.name));
+  const h2h = owned.length === 2 && owners.size === 2;
+  const sameOwner = owned.length === 2 && owners.size === 1;
+  const sp = g.spread == null ? null : Math.abs(g.spread);
+  // Decay hard on lopsided lines: a 50-point favorite is not a "key matchup"
+  // no matter how many pool points are standing on the field.
+  //   pick'em -> 2.00 | -3 -> 1.50 | -7 -> 1.04 | -14 -> 0.62 | -25 -> 0.36 | -50 -> 0.26
+  const vol = sp == null ? 1.0 : 0.25 + 1.75 * Math.exp(-sp / 9);
+  // A drafted team with no points beating a ranked team is real upside —
+  // but only when the line says it could actually happen.
+  const upset = owned.some(s => !s.pts) && sides.some(s => s.rank) ? 8 * vol : 0;
+  const impact = atRisk * vol * (h2h ? 1.8 : 1) + upset;
+  return {sides, owned, atRisk, h2h, sameOwner, sp, impact};
+}
+
+const plural = n => n === 1 ? '' : 's';
+function rankTag(s){ return s.rank ? 'No. ' + s.rank : s.rv ? 'RV' + s.rv : 'unranked'; }
+
+function favorite(g, a){
+  if(!g.line) return null;
+  const m = g.line.match(/^\s*([A-Za-z&.'\- ]+?)\s*-\s*([\d.]+)\s*$/);
+  if(!m) return null;
+  const ab = m[1].trim().toUpperCase();
+  const side = a.sides.find(s => (s.abbr || '').toUpperCase() === ab);
+  return {side, name: side ? side.name : m[1].trim(), by: +m[2]};
+}
+
+function stakesLine(a){
+  if(a.h2h){
+    const [x, y] = a.owned;
+    return `<em>${esc(x.owner.name)}</em>’s ${esc(x.name)} (${rankTag(x)}, ${x.pts} pt${plural(x.pts)}) `
+         + `against <em>${esc(y.owner.name)}</em>’s ${esc(y.name)} (${rankTag(y)}, ${y.pts} pt${plural(y.pts)}). `
+         + `${a.atRisk} pool point${plural(a.atRisk)} on the field, and one of them takes a loss.`;
+  }
+  if(a.sameOwner){
+    const [x, y] = a.owned;
+    return `<em>${esc(x.owner.name)}</em> owns both sides — ${esc(x.name)} and ${esc(y.name)} — `
+         + `so this one is a hedge: the win and the loss both land in the same column.`;
+  }
+  const x = a.owned[0];
+  const foe = a.sides.find(s => s !== x);
+  return `<em>${esc(x.owner.name)}</em> has ${x.pts} point${plural(x.pts)} riding on ${esc(x.name)} `
+       + `(${rankTag(x)})${foe && foe.rank ? ` against No. ${foe.rank} ${esc(foe.name)}` : ''}.`;
+}
+
+function lineSentence(g, a){
+  if(!g.line) return 'No line posted yet.';
+  if(/even|pick|\bpk\b/i.test(g.line)) return 'It is on the board as a pick’em.';
+  const f = favorite(g, a);
+  if(!f) return `The line is ${esc(g.line)}.`;
+  const who = esc(f.name);
+  if(f.by < 3)   return `${who} is favored by just ${f.by} — about as close to a coin flip as the board gets.`;
+  if(f.by <= 7)  return `${who} is a ${f.by}-point favorite, inside one score.`;
+  if(f.by <= 14) return `${who} is favored by ${f.by}.`;
+  return `${who} is a heavy ${f.by}-point favorite, so the live question is the upset, not the win.`;
+}
+
+function tierSentence(a){
+  const ranked = a.owned.filter(s => s.rank).sort((x, y) => x.rank - y.rank);
+  if(!ranked.length){
+    const up = a.owned.find(s => !s.pts);
+    const foe = up && a.sides.find(s => s !== up && s.rank);
+    if(up && foe) return `${esc(up.name)} is outside the poll entirely — beating a top-25 team is `
+                       + `${esc(up.owner.name)}’s cleanest route to finally putting them on the board.`;
+    return '';
+  }
+  const s = ranked[0], t = tierOf(s.rank), nx = nextDownPts(s.rank);
+  if(s.rank === 1) return `${esc(s.name)} is No. 1 and worth the full 25 — for `
+                        + `${esc(s.owner.name)} every result except a win is a step backward.`;
+  return `${esc(s.name)} sits in the ${t[0]}–${t[1]} band worth ${t[2]}; one tier of slippage `
+       + `takes ${esc(s.owner.name)} to ${nx}.`;
+}
+
+function resultSentence(a){
+  const w = a.sides.find(s => s.winner), l = a.sides.find(s => !s.winner);
+  if(!w || !l) return '';
+  const head = `Final: ${esc(w.name)} ${w.score}, ${esc(l.name)} ${l.score}.`;
+  let tail;
+  if(a.h2h){
+    // Both owned by different people — say who got hurt, not just who won.
+    tail = `<em>${esc(w.owner.name)}</em> takes the head-to-head; `
+         + (l.pts
+            ? `<em>${esc(l.owner.name)}</em>’s ${esc(l.name)} (${rankTag(l)}, ${l.pts} pt${plural(l.pts)}) `
+              + `is the one exposed when the poll resets.`
+            : `<em>${esc(l.owner.name)}</em>’s ${esc(l.name)} had nothing on the board to lose.`);
+  } else if(a.sameOwner){
+    tail = `<em>${esc(w.owner.name)}</em> owned both, so it is a wash.`;
+  } else if(w.owner){
+    tail = `<em>${esc(w.owner.name)}</em> holds ${w.pts ? w.pts + ' point' + plural(w.pts) : 'the win'}.`;
+  } else {
+    tail = `<em>${esc(l.owner.name)}</em> takes the hit — ${esc(l.name)} `
+         + `was worth ${l.pts} point${plural(l.pts)}.`;
+  }
+  return head + ' ' + tail;
+}
+
+function whenText(g){
+  if(g.state === 'post') return 'Final';
+  if(g.state === 'in')   return g.detail || 'Live';
+  const d = new Date(g.date);
+  if(isNaN(d)) return '';
+  // ESPN stamps midnight UTC with timeValid:false when kickoff is still TBD —
+  // don't render that as a real time.
+  if(!g.timeValid) return d.toLocaleDateString(undefined, {weekday:'short', month:'numeric', day:'numeric'}) + ' · TBD';
+  return d.toLocaleString(undefined, {weekday:'short', month:'numeric', day:'numeric',
+                                      hour:'numeric', minute:'2-digit'});
+}
+
+function drawMatchups(){
+  const host = el('matchups');
+  if(!host) return;
+  if(!GAMES || !GAMES.events.length || !POLLS.length){ host.innerHTML = ''; return; }
+
+  const poll = POLLS[POLLS.length - 1];
+  const sm = scoreMap(poll);
+  const ranked = GAMES.events
+    .map(g => { const a = analyze(g, sm); return a ? {g, a} : null; })
+    .filter(Boolean)
+    .sort((x, y) => y.a.impact - x.a.impact || new Date(x.g.date) - new Date(y.g.date));
+
+  const top = ranked.slice(0, 3);
+  if(!top.length){ host.innerHTML = ''; return; }
+
+  const cards = top.map((m, i) => {
+    const {g, a} = m;
+    const done = g.state === 'post';
+    const tag = a.h2h      ? '<span class="mutag h2h">Head to head</span>'
+              : a.sameOwner? '<span class="mutag">Owner hedge</span>'
+              : `<span class="mutag">${a.atRisk} pt${plural(a.atRisk)} exposed</span>`;
+    const live = g.state === 'in' ? '<span class="mutag live">Live</span>' : '';
+
+    const row = s => {
+      const lost = done && !s.winner;
+      return `<div class="mut${s.owner ? ' own' : ''}${lost ? ' lost' : ''}">
+        <span class="mursk">${s.rank ? 'No.' + s.rank : s.rv ? 'RV' + s.rv : ''}</span>
+        <span class="muname">${esc(s.name)}</span>
+        ${s.rec && s.rec !== '0-0' ? `<span class="murec">${esc(s.rec)}</span>` : ''}
+        ${s.owner
+          ? `<span class="muown"><span class="swatch" style="background:var(--s${s.owner.slot})"></span>${esc(s.owner.name)}</span>`
+          : '<span class="muown free">undrafted</span>'}
+        ${g.state === 'pre'
+          ? `<span class="mupts">${s.pts || ''}</span>`
+          : `<span class="musc">${s.score}</span>`}
+      </div>`;
+    };
+
+    const meta = [];
+    if(g.state === 'pre' && g.line) meta.push(`<b>${esc(g.line)}</b>`);
+    if(a.atRisk)  meta.push(`${a.atRisk} pool pt${plural(a.atRisk)} at stake`);
+    if(g.tv)      meta.push(esc(g.tv));
+    if(g.note)    meta.push(esc(g.note));
+    else if(g.neutral && g.venue) meta.push(esc(g.venue));
+    else if(g.conf) meta.push('Conference game');
+
+    const body = done
+      ? [resultSentence(a)].filter(Boolean).join(' ')
+      : [stakesLine(a), lineSentence(g, a), tierSentence(a)].filter(Boolean).join(' ');
+
+    return `<div class="mu">
+      <div class="muhead"><span class="murk">${i+1}</span>${tag}${live}
+        <span class="muwhen">${esc(whenText(g))}</span></div>
+      <div class="muteams">${row(a.sides[0])}${row(a.sides[1])}</div>
+      ${meta.length ? `<div class="mumeta">${meta.join('<span style="opacity:.4">·</span>')}</div>` : ''}
+      <p class="mubody">${body}</p>
+    </div>`;
+  }).join('');
+
+  host.innerHTML = `
+    <div class="mzhead">
+      <span class="mztitle">Games that matter${GAMES.week ? ' · Week ' + GAMES.week : ''}</span>
+      <span class="cnote">ranked by what they do to the standings, not by national hype</span>
+    </div>
+    <div class="mzgrid">${cards}</div>`;
+}
+
 /* ---------- chrome ---------- */
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
@@ -771,6 +1065,7 @@ themeBtn.onclick = () => {
 };
 
 loadPolls();
+loadGames();
 </script>
 </body>
 </html>

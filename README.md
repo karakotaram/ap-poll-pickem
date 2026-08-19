@@ -38,6 +38,27 @@ the preseason poll, so the page always renders.
 Team names are resolved from an embedded ESPN team-ID map, and each player's
 picks are stored as ESPN team IDs — so nothing depends on fuzzy name matching.
 
+## Games that matter
+
+The section at the top ranks the week's games by **pool impact**, not national
+hype, using ESPN's scoreboard API (schedule, AP ranks, records, betting lines,
+TV, venue). Each game scores:
+
+    impact = poolPointsAtRisk × volatility × headToHead + upsetUpside
+
+- **poolPointsAtRisk** — points the drafted teams in that game currently carry
+- **volatility** — `0.25 + 1.75·e^(−spread/9)`, so a pick'em is worth 2.0× and a
+  50-point blowout only 0.26×. Without this a cupcake game involving the No. 1
+  team outranks a genuine toss-up.
+- **headToHead** — 1.8× when two *different* members' teams play each other
+- **upsetUpside** — a bonus when a member owns an unranked team facing a ranked
+  one, scaled by volatility so it only fires when the line says it's live
+
+The commentary underneath is generated from those same facts — ranks, records,
+the line, who owns what, and what the scoring table says a tier slip costs. It
+switches to a result summary once a game goes final. No prose is hand-written,
+so it never goes stale, and nothing in it is invented.
+
 ## Scoring
 
 | AP rank | Points |
