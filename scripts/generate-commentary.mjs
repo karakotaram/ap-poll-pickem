@@ -17,7 +17,24 @@ const N_GAMES    = 6;   // page shows 3; extra cover it picking a slightly diffe
 
 const DRY_RUN = process.env.DRY_RUN === '1';   // build the payload, skip the API call
 
-if (!GROQ_KEY && !DRY_RUN) { console.error('GROQ_API_KEY not set'); process.exit(1); }
+if (!DRY_RUN) {
+  // Distinguish "missing" from "present but empty" — `gh secret set` with no
+  // stdin silently stores an empty string, which is otherwise invisible in CI
+  // logs because there is nothing for GitHub to mask.
+  if (GROQ_KEY === undefined) {
+    console.error('GROQ_API_KEY is not set at all. Add it as a repository secret.');
+    process.exit(1);
+  }
+  if (!GROQ_KEY.trim()) {
+    console.error('GROQ_API_KEY is set but EMPTY — the secret was stored with no value.');
+    console.error('Re-add it via the web UI (Settings > Secrets and variables > Actions)');
+    console.error('or from an interactive terminal: gh secret set GROQ_API_KEY --repo <owner>/<repo>');
+    process.exit(1);
+  }
+  if (!/^gsk_/.test(GROQ_KEY.trim())) {
+    console.warn('warning: GROQ_API_KEY does not start with "gsk_" — check you pasted the right value.');
+  }
+}
 
 const RANK_API = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football/seasons';
 const SB_API   = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard';
