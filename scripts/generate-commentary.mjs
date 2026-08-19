@@ -150,6 +150,21 @@ const games = (sb.events || []).map(e => {
 
 if (!games.length) { console.log('no pool-relevant games this week — nothing to write'); process.exit(0); }
 
+// Real standings, so any claim about the race is grounded instead of guessed.
+const STANDINGS = ROSTER.map(p => ({
+  name: p.name,
+  points: p.picks.reduce((a, id) => a + (SM.get(id)?.pts || 0), 0),
+})).sort((a, b) => b.points - a.points);
+let pl = 1;
+STANDINGS.forEach((r, i) => { if (i && r.points !== STANDINGS[i-1].points) pl = i + 1; r.place = pl; });
+
+// Spell the venue situation out; a raw boolean gets skimmed past.
+games.forEach(({ facts: f }) => {
+  f.venueNote = f.neutralSite
+    ? `NEUTRAL SITE at ${f.venue} — neither team is at home. Do not claim home-field advantage.`
+    : `${f.home.name} is at home at ${f.venue}.`;
+});
+
 /* ---------- ask Groq ---------- */
 const ANGLES = [
   'open on what the betting line says about somebody\'s draft pick',
@@ -184,6 +199,8 @@ STYLE SAMPLES — match this register, never reuse the content:
 HARD RULES:
 - Use ONLY the facts in the JSON provided. You have no other knowledge of these teams.
 - Never invent statistics, records, injuries, quotes, coaches, players, or history.
+- EVERY NUMBER you write must appear in that game's JSON or the standings block. Do not compute, infer, or invent figures. If you are unsure of a number, do not use one.
+- Respect venueNote exactly. Never claim home-field advantage at a neutral site.
 - Never predict a final score, declare a winner, or call anything decided. A spread is a market opinion, not a result. BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
 - Refer to owners by the exact names above.
 - EXACTLY 2 or 3 sentences per game. Never one. 55 words max.
@@ -196,6 +213,8 @@ const messages = [
     { role: 'system', content: SYSTEM },
     { role: 'user', content:
         `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first.\n\n` +
+        `CURRENT STANDINGS (the only standings that exist — never claim anything else about the race):\n` +
+        STANDINGS.map(r => `  ${r.place}. ${r.name} — ${r.points} pts`).join('\n') + `\n\n` +
         `Each game is assigned a REQUIRED opening angle. Obey it — it exists so the blurbs don't all read the same:\n` +
         games.map((g, i) => `  ${g.facts.id} (${g.facts.matchup}) -> ${ANGLES[i % ANGLES.length]}`).join('\n') +
         `\n\n${JSON.stringify(games.map(g => g.facts), null, 1)}` },
@@ -246,6 +265,52 @@ if (DRY_RUN) {
   process.exit(0);
 }
 
+/* ---------- verification ----------
+   The prompt asks the model not to invent things; this checks that it didn't.
+   A blurb that fails is dropped and the page falls back to its own text. */
+const NUMWORDS = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9,
+  ten:10, eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16,
+  seventeen:17, eighteen:18, nineteen:19, twenty:20, thirty:30, forty:40, fifty:50,
+  first:1, second:2, third:3, fourth:4, fifth:5, sixth:6, seventh:7, eighth:8, ninth:9, tenth:10 };
+
+function numbersIn(text) {
+  const found = [];
+  for (const m of text.matchAll(/\d+(?:[.,]\d+)?/g)) {
+    const n = parseFloat(m[0].replace(/,/g, ''));
+    if (!Number.isNaN(n)) found.push(n);
+  }
+  for (const m of text.toLowerCase().matchAll(/[a-z]+/g)) {
+    if (NUMWORDS[m[0]] !== undefined) found.push(NUMWORDS[m[0]]);
+  }
+  return found;
+}
+
+const POOL_CONSTANTS = [ROSTER.length, 6, 200, 1600, 40, 60, 400, 160, 80, 600, 240, 120];
+
+function allowedNumbers(facts) {
+  const set = new Set(POOL_CONSTANTS);
+  const walk = v => {
+    if (typeof v === 'number') set.add(v);
+    else if (typeof v === 'string') numbersIn(v).forEach(n => set.add(n));
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+  };
+  walk(facts);
+  STANDINGS.forEach(r => { set.add(r.points); set.add(r.place); });
+  return [...set];
+}
+
+function validate(blurb, facts) {
+  if (facts.neutralSite && /\bhome[- ]?(field|team|crowd)\b|\bat home\b|\bhosts?\b|\bhome advantage\b/i.test(blurb))
+    return 'claims home-field advantage at a neutral site';
+  const allowed = allowedNumbers(facts);
+  for (const n of numbersIn(blurb)) {
+    // 0.5 tolerance so rounding a 9.5 line to "nine" is fine.
+    if (!allowed.some(a => Math.abs(a - n) <= 0.5)) return `unsupported number: ${n}`;
+  }
+  return null;
+}
+
 let out = {};
 try {
   let raw;
@@ -260,10 +325,17 @@ try {
   const jsonText = extractJson(raw);
   if (!jsonText) throw new Error('no JSON object in model reply');
   const parsed = JSON.parse(jsonText);
-  const valid = new Set(games.map(g => g.facts.id));
+  const byId = new Map(games.map(g => [g.facts.id, g.facts]));
+  let rejected = 0;
   for (const [k, v] of Object.entries(parsed)) {
-    if (valid.has(String(k)) && typeof v === 'string' && v.trim()) out[String(k)] = v.trim().slice(0, 400);
+    const facts = byId.get(String(k));
+    if (!facts || typeof v !== 'string' || !v.trim()) continue;
+    const blurb = v.trim().slice(0, 400);
+    const problem = validate(blurb, facts);
+    if (problem) { console.error(`rejected ${k}: ${problem}\n   ${blurb}`); rejected++; continue; }
+    out[String(k)] = blurb;
   }
+  if (rejected) console.error(`${rejected} blurb(s) rejected; page falls back to built-in text for those`);
   if (!Object.keys(out).length) throw new Error('model returned no usable blurbs');
 } catch (err) {
   // Never break the site: leave the previous commentary.json in place.
