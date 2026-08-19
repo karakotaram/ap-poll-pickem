@@ -59,6 +59,49 @@ the line, who owns what, and what the scoring table says a tier slip costs. It
 switches to a result summary once a game goes final. No prose is hand-written,
 so it never goes stale, and nothing in it is invented.
 
+## The column (optional, Groq)
+
+The blurbs are written by an LLM **at build time**, never in the browser. A
+GitHub Action runs `scripts/generate-commentary.mjs` on Tuesdays and Fridays;
+it pulls the poll and the slate, ranks the games by the impact model above,
+sends the facts to Groq, and commits the prose to `commentary.json`. The page
+loads that file and falls back to the built-in rule-based text whenever it's
+missing, stale, or malformed.
+
+**The API key never reaches the browser.** This repo and the site are public —
+a key in client-side JS would be scraped in hours. It lives in GitHub Actions
+secrets and is only ever read inside CI.
+
+### Setup
+
+    gh secret set GROQ_API_KEY --repo karakotaram/ap-poll-pickem
+
+Paste the key at the prompt (it isn't echoed and won't land in shell history).
+Then trigger the first run:
+
+    gh workflow run "Generate matchup commentary" --repo karakotaram/ap-poll-pickem
+
+### Local dry run (no key, no API call)
+
+    DRY_RUN=1 node scripts/generate-commentary.mjs
+
+Prints the system prompt and the exact facts payload so you can see what the
+model is given. Override the model with `GROQ_MODEL=...` (default
+`openai/gpt-oss-120b`).
+
+### Guardrails
+
+- The prompt forbids inventing stats, injuries, quotes, records, or scores, and
+  restricts the model to the supplied facts.
+- Model output is HTML-escaped before rendering; only player names from the
+  roster are re-emphasised, so nothing the model writes can inject markup.
+- A blurb is only shown if it was generated for the week currently on screen
+  and is less than 8 days old.
+- Finished games always use the factual result line — the column was written
+  before kickoff.
+- If Groq fails, the script exits non-zero without writing, leaving the last
+  good `commentary.json` in place.
+
 ## Scoring
 
 | AP rank | Points |

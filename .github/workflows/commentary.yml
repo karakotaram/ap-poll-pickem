@@ -1,0 +1,45 @@
+name: Generate matchup commentary
+
+# Tuesday (after the new AP poll settles) and Friday (once lines firm up).
+# Times are UTC; GitHub cron has no timezone support.
+on:
+  schedule:
+    - cron: '0 13 * * 2'   # Tue 13:00 UTC  =  9am ET / 6am PT
+    - cron: '0 15 * * 5'   # Fri 15:00 UTC  = 11am ET / 8am PT
+  workflow_dispatch:        # manual run from the Actions tab
+
+concurrency:
+  group: commentary
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate commentary
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node scripts/generate-commentary.mjs
+
+      - name: Commit if changed
+        run: |
+          # git status (not git diff) — on the very first run commentary.json is
+          # untracked, and git diff reports no change for untracked files.
+          if [ -z "$(git status --porcelain commentary.json)" ]; then
+            echo "no change — nothing to commit"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add commentary.json
+          git commit -m "Update matchup commentary [skip ci]"
+          git push
