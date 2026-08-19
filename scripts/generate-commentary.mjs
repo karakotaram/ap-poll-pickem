@@ -384,12 +384,23 @@ function conflationProblem(blurb) {
 
 const PLACEHOLDER = /^(\.{2,}|…+|todo|tbd|n\/?a|lorem\b.*|<.*>|\{.*\}|blurb|string)$/i;
 
+/* Mangled idioms the model has actually produced. A regex cannot catch garbled
+   English in general — the audit pass judges fluency — but anything seen once
+   is cheap to block forever. */
+const GARBLED = [
+  /\brolls? the night\b/i,
+  /\brolls? the dice on the night\b/i,
+  /\bhouse money on the line\b/i,
+];
+
 /* qwen echoed the "..." from the prompt's format example and every other
    check passed it — an ellipsis has no numbers to verify and no claims to
    contradict. Substance has to be checked explicitly. */
 function substanceProblem(blurb) {
   const t = blurb.trim();
   if (PLACEHOLDER.test(t)) return 'placeholder text, not a blurb';
+  const g = GARBLED.find(re => re.test(t));
+  if (g) return `garbled idiom: ${g.source}`;
   const words = t.split(/\s+/).filter(w => /[A-Za-z]/.test(w));
   if (words.length < 8) return `too short (${words.length} words)`;
   if (t.replace(/[^A-Za-z]/g, '').length < 30) return 'almost no prose';
@@ -438,7 +449,9 @@ Mark ok=false if the blurb states anything the facts do not support. Specificall
 - any number, record, statistic, injury, or history not present in the facts
 - predicting a winner or a final score as settled fact
 
-Do NOT mark ok=false for opinion, sarcasm, insults, or tone. Rudeness is intended. Only factual support matters.
+Also mark ok=false if the writing is broken English: a garbled or mangled idiom ("rolls the night" instead of "rolls the dice"), a phrase that does not parse, a word that clearly is not the one meant, or a sentence a fluent speaker would not write.
+
+Do NOT mark ok=false for opinion, sarcasm, insults, bluntness or informal tone — rudeness is intended and is not an error. Judge only factual support and whether the English is coherent.
 
 Return ONLY JSON: {"<id>": {"ok": true|false, "reason": "<short>"}, ...}`;
 
