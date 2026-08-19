@@ -124,8 +124,25 @@ restating anything the card already displays.
 - Finished games always use the factual result line.
 - If Groq fails, the script exits without writing, leaving the last good file.
 
+- **Substance** — a blurb must be real prose (>=8 alphabetic words, sentence
+  punctuation, not a placeholder). Added after qwen returned `"..."` for all
+  six games, which every other check happily passed.
+
 Expect 3-5 of 6 blurbs to survive in a typical run. That is the system working:
 a dropped blurb costs nothing, a published falsehood would.
+
+### Model notes
+
+`openai/gpt-oss-120b` is the default and the only model on this account that
+reliably produces usable blurbs. `qwen/qwen3.6-27b` was tried twice: it 400s on
+JSON mode every time, returns its answer in `reasoning` rather than `content`,
+and emitted placeholder `"..."` text for every game. Avoid `groq/compound` — it
+performs web search, which would break the only-supplied-facts guarantee.
+
+Trial a model without publishing:
+
+    gh workflow run "Generate matchup commentary" \
+      --repo karakotaram/ap-poll-pickem -f model=<id> -f no_write=true
 
 ## Scoring
 

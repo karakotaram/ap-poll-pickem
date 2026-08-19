@@ -475,7 +475,15 @@ try {
   let rejected = 0;
   for (const [k, v] of Object.entries(parsed)) {
     const facts = byId.get(String(k));
-    if (!facts || typeof v !== 'string' || !v.trim()) continue;
+    if (!facts) {
+      // e.g. the model echoed the example id from the prompt instead of a real one
+      console.error(`ignored unknown game id "${k}" — not in this week's slate`);
+      continue;
+    }
+    if (typeof v !== 'string' || !v.trim()) {
+      console.error(`ignored ${k}: empty or non-string value`);
+      continue;
+    }
     const blurb = v.trim().slice(0, 400);
     const problem = validate(blurb, facts);
     if (problem) { console.error(`rejected ${k}: ${problem}\n   ${blurb}`); rejected++; continue; }
