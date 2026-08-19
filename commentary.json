@@ -1,11 +1,13 @@
 {
-  "generated": "2026-08-19T19:14:40.980Z",
+  "generated": "2026-08-19T21:07:51.975Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "Karan is staring at a ten‑point exposure, the home Tigers being a nine‑point favorite. Ty’s Clemson draft only carries two points, so the Orange can’t dent anyone’s pool no matter the spread.",
-    "401858432": "Jim’s weekend is a pure points grab; Ohio State’s top spot guarantees twenty‑five on the line. No other owner has a claim on that pool chunk."
+    "401856661": "Ty’s Ole Miss pick looks secure because the market expects a comfortable win. Murph’s Louisville selection has little margin and must rely on an upset to improve his standing.",
+    "401858212": "Jim risks his points as Merc plays with house money. The line favors SMU, so the market gives Jim a slight edge to protect his draft.",
+    "401858432": "Jim’s weekend hinges entirely on Ohio State maintaining its top position. The line shows a massive expected margin, so any surprise would directly affect his stake.",
+    "401858438": "Mike looks vulnerable if Notre Dame fails to cover a large margin. Ty’s Wisconsin pick carries no points, so his weekend is unaffected by the outcome."
   }
 }
