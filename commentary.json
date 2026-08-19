@@ -1,12 +1,15 @@
 {
-  "generated": "2026-08-19T18:57:51.364Z",
-  "model": "openai/gpt-oss-120b",
+  "generated": "2026-08-19T19:02:10.820Z",
+  "model": "qwen/qwen3.6-27b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401858212": "Merc rolls the night with house money; his Florida State pick carries zero pool value. Jim, meanwhile, has five points on the line and the -2.5 line shows SMU is expected to edge the game, so his draft hangs by a thread.",
-    "401858432": "Jim’s weekend reads as a straight 25‑point grab; Ohio State’s top spot guarantees his draft value regardless of the result. There’s no counter‑balance to temper the payout.",
-    "401858433": "Ty’s pick landed him a two‑point Boise State, a far cry from the top‑tier he imagined. John, on the other hand, is sitting on a twenty‑point Oregon selection, so the spread gap feels like a joke."
+    "401856660": "...",
+    "401856661": "...",
+    "401858212": "...",
+    "401858432": "...",
+    "401858433": "...",
+    "401858438": "..."
   }
 }
