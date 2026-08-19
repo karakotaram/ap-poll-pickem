@@ -1,13 +1,14 @@
 {
-  "generated": "2026-08-19T18:42:19.550Z",
+  "generated": "2026-08-19T18:43:48.012Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "If the -9.5 spread holds, Ty’s Clemson draft is the biggest liability. LSU defends home turf at Tiger Stadium (LA), and the game is on ABC.",
-    "401858212": "SMU -2.5 puts Jim's five‑point draft on the line while Merc's Florida State carries zero pool value. Doak Campbell Stadium hosts the conference clash, televised on ESPN.",
-    "401858432": "With $1,600 on the line, Jim’s 25‑point Ohio State pick dwarfs the rest of the pool. OSU -50.5 at Ohio Stadium, broadcast on BTN, puts the most at stake this week.",
-    "401858433": "John’s Oregon sits at No.2, a full tier above Ty’s Boise State, which earned only two points. ORE -24.5 on the board, and the contest airs on CBS from Autzen Stadium."
+    "401856660": "An LSU win pushes Karan ahead of Ty in the standings, tightening the race. The twelve points at stake could flip the leaderboard before week two.",
+    "401856661": "Murph's Louisville draft is in trouble; the -6.5 line shows the market doubts his pick. Ty's Ole Miss sits comfortably with a six‑point cushion and a 15‑point pool value.",
+    "401858212": "Jim is playing with house money on SMU, a two‑point favorite. Merc, on the other hand, has nothing at stake with Florida State.",
+    "401858432": "Jim's weekend is a straight 25‑point grab at home. No opponent can dent that pool lead in week one.",
+    "401858438": "Ty looks the worst if Notre Dame covers the 20.5‑point spread. A loss would leave him with zero pool points while Mike banks twenty."
   }
 }
