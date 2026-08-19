@@ -106,6 +106,7 @@ const games = (sb.events || []).map(e => {
     const t = c.competitors.find(x => x.homeAway === ha) || c.competitors[0];
     const id = t.team?.id, sc = SM.get(id) || {};
     return { id, name: t.team?.location || '', abbr: t.team?.abbreviation || '',
+             nickname: t.team?.name || '',
              record: t.records?.[0]?.summary || '', rank: sc.rank ?? null, rv: sc.rv ?? null,
              points: sc.pts || 0, owner: OWNER[id] || null };
   };
@@ -212,6 +213,7 @@ HARD RULES:
 - You do NOT know the standings. Never say anyone leads, trails, is ahead, is behind, is winning, or is collecting the pot. The standings table is rendered below you; it is not your subject.
 - Never predict a final score, declare a winner, or call anything decided or near-certain. BANNED: "almost a certainty", "no room for surprise", "sits safely", "collects the pot", "before the season even starts". A spread is a market opinion, not a result. BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
 - Refer to owners by the exact names above.
+- Call each team ONLY by the exact name given for it in the JSON. Never use a mascot or nickname — not "the Irish", "the Buckeyes", "the Rebels", "the Broncos". Using two different names for one team leads to writing as if it were two teams.
 - EXACTLY 2 or 3 sentences per game. Never one. 55 words max.
 - Do not use the construction "X, while Y" in more than one blurb.
 - Every blurb must open differently from the others.
@@ -408,9 +410,28 @@ function substanceProblem(blurb) {
   return null;
 }
 
+/* "Notre Dame fails to dominate the Irish" — Notre Dame IS the Irish. Allowing
+   two names per team invites treating one team as two, and the card only ever
+   shows the location name anyway. So nicknames are simply not allowed. */
+function nicknameProblem(blurb, facts) {
+  for (const side of [facts.away, facts.home]) {
+    const nick = (side.nickname || '').trim();
+    if (!nick) continue;
+    // match the full nickname and its last word ("Fighting Irish" -> "Irish")
+    const forms = [nick, nick.split(/\s+/).pop()].filter(w => w && w.length > 3);
+    for (const f of forms) {
+      if (new RegExp(`\\b${f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(blurb))
+        return `uses the nickname "${f}" instead of "${side.name}"`;
+    }
+  }
+  return null;
+}
+
 function validate(blurb, facts) {
   const sub = substanceProblem(blurb);
   if (sub) return sub;
+  const nick = nicknameProblem(blurb, facts);
+  if (nick) return nick;
   const dir = directionProblem(blurb, facts);
   if (dir) return dir;
   const conf = conflationProblem(blurb);
