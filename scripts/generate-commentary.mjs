@@ -303,9 +303,20 @@ function allowedNumbers(facts) {
   return [...set];
 }
 
+// Banned in the prompt, so also banned in code — the model ignores the prompt
+// roughly one blurb in six.
+const BANNED = ['lock', 'inevitable', 'safe bet', 'cash cow', 'free lunch', 'sure thing',
+  'no-brainer', 'no brainer', 'almost a certainty', 'no room for surprise', 'sits safely',
+  'collects the pot', 'buckle up', 'must-win', 'all eyes on', 'for the ages',
+  'will win', 'should win', 'cannot lose', "can't lose"];
+
 function validate(blurb, facts) {
-  if (facts.neutralSite && /\bhome[- ]?(field|team|crowd)\b|\bat home\b|\bhosts?\b|\bhome advantage\b/i.test(blurb))
-    return 'claims home-field advantage at a neutral site';
+  const low = blurb.toLowerCase();
+  const hit = BANNED.find(b => new RegExp(`\\b${b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(low));
+  if (hit) return `banned phrase: "${hit}"`;
+  if (facts.neutralSite &&
+      /\bhome[- ]?(field|team|crowd)\b|\bat home\b|\bhosts?\b|\bhome advantage\b|\broad (test|trip|game)\b|\btravels?\b|\bvisits?\b|\baway game\b/i.test(blurb))
+    return 'treats a neutral-site game as home/away';
   const allowed = allowedNumbers(facts);
   for (const n of numbersIn(blurb)) {
     // 0.5 tolerance so rounding a 9.5 line to "nine" is fine.
