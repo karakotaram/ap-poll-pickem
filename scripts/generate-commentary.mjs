@@ -382,7 +382,24 @@ function conflationProblem(blurb) {
   return null;
 }
 
+const PLACEHOLDER = /^(\.{2,}|…+|todo|tbd|n\/?a|lorem\b.*|<.*>|\{.*\}|blurb|string)$/i;
+
+/* qwen echoed the "..." from the prompt's format example and every other
+   check passed it — an ellipsis has no numbers to verify and no claims to
+   contradict. Substance has to be checked explicitly. */
+function substanceProblem(blurb) {
+  const t = blurb.trim();
+  if (PLACEHOLDER.test(t)) return 'placeholder text, not a blurb';
+  const words = t.split(/\s+/).filter(w => /[A-Za-z]/.test(w));
+  if (words.length < 8) return `too short (${words.length} words)`;
+  if (t.replace(/[^A-Za-z]/g, '').length < 30) return 'almost no prose';
+  if (!/[.!?]/.test(t)) return 'no sentence punctuation';
+  return null;
+}
+
 function validate(blurb, facts) {
+  const sub = substanceProblem(blurb);
+  if (sub) return sub;
   const dir = directionProblem(blurb, facts);
   if (dir) return dir;
   const conf = conflationProblem(blurb);
