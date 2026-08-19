@@ -1,15 +1,15 @@
 {
-  "generated": "2026-08-19T18:34:05.274Z",
+  "generated": "2026-08-19T18:35:40.886Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "Karan’s LSU is No.11, worth 10 points. Ty’s Clemson isn’t even in the top 25, only 2 points. Karan can afford a loss; Ty can’t afford to look busy.",
-    "401856661": "Murph’s Louisville sits at No.24, worth 3 pool points. Ty’s Ole Miss is No.9, worth 15. This 18‑point clash could pad Ty’s lead while Murph scrapes for crumbs.",
-    "401858212": "Jim’s SMU is No.19, worth 5 pool points. Merc’s Florida State isn’t even in the poll, netting zero. Jim’s modest stake could disappear if FSU upsets the Mustangs.",
-    "401858432": "Jim’s Ohio State dominates at No.1 for 25 points. Ball State brings nothing to the table. Jim’s 25‑point haul will widen his lead unless the Buckeyes choke.",
-    "401858433": "John’s Oregon is No.2, 20 pool points. Ty’s Boise State sits outside the poll, worth 2. That 22‑point game should boost John while Ty watches his hopes evaporate.",
-    "401858438": "Mike’s Notre Dame sits at No.4 for 20 points. Ty’s Wisconsin isn’t ranked, worth nothing. That 20‑point swing will leave Ty watching from the sidelines."
+    "401856660": "LSU’s 9.5‑point favorite status makes Karan’s draft pick the one that matters, while Ty’s Clemson is a two‑point gamble.",
+    "401856661": "The -6.5 spread tells Ty his Ole Miss is a safe bet, while Murph’s Louisville is just a free lunch at the Music City Kickoff.",
+    "401858212": "SMU being favored by 2.5 on the road means Jim’s draft pick is the one actually risking points; Merc’s FSU sits on a zero‑value slate.",
+    "401858432": "OSU’s 50.5‑point favorite turns Jim’s top‑pick into a cash cow, while Ball State contributes nothing to anyone’s draft.",
+    "401858433": "A 24.5‑point line crowns John’s Oregon as the inevitable winner; Ty’s Boise State is just padding the pot.",
+    "401858438": "A 20.5‑point gap hands Mike a lock at Lambeau, leaving Ty’s Wisconsin to watch the fireworks from the sidelines."
   }
 }
