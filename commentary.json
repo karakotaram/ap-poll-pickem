@@ -1,12 +1,11 @@
 {
-  "generated": "2026-08-19T19:10:24.059Z",
+  "generated": "2026-08-19T19:12:07.297Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "Karan is exposed to a ten‑point swing with LSU, a risk Ty's Clemson draft simply avoids. The -9.5 line underlines LSU's favoritism.",
-    "401858432": "Jim's weekend is a straight 25‑point play on Ohio State. No other pick offers comparable exposure.",
-    "401858438": "Mike looks the worst if Notre Dame fails to dominate the Irish. Ty's Wisconsin has no poll points, so the downside is minimal."
+    "401858432": "Jim's Ohio State pick is a straight line to the top of the poll. No wiggle room; any slip would be costly.",
+    "401858433": "Ty thought he had a sleeper, but his Boise State pick is light-years from John's Oregon haul. The -24.5 line underscores the gulf between their drafts."
   }
 }
