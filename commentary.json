@@ -1,13 +1,12 @@
 {
-  "generated": "2026-08-19T18:45:23.814Z",
+  "generated": "2026-08-19T18:46:32.705Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "A LSU win would tighten the race between Ty and Karan, cutting Ty's lead to a single digit. The -9.5 spread signals a comfortable home advantage for Karan's ten‑point pick. Ty's two‑point draft hangs in the balance.",
-    "401856661": "Murph's Louisville pick looks like a 6.5‑point gamble; the Rebels are -6.5. If the Cardinals pull an upset, Murph snags three points, but the market already treats his draft as a tier‑down. Ty's Ole Miss sits comfortably with fifteen.",
-    "401858432": "Jim's weekend is a straight 25‑point payday. The -50.5 line makes Ohio State an overwhelming favorite, leaving no room for surprise. Jim collects the bulk of the pot before the season even starts.",
-    "401858438": "Ty looks the worst if this blows up for him. A 20.5‑point gap makes a Notre Dame win almost a certainty, leaving Ty's zero‑point Wisconsin draft hanging by a thread. Mike's twenty‑point haul sits safely on the board."
+    "401856660": "Ty is exposed to a nine‑and‑a‑half hole, a risk Karan simply doesn't face. LSU's favored status shields Karan's ten‑point draft from the spread.",
+    "401856661": "Ty's Ole Miss draft feels justified; a six‑point spread signals that Murph's Louisville must overperform to matter. If the Rebels cover, Ty gains a clean 15‑point boost while Murph watches his three points dwindle.",
+    "401858438": "Ty looks terrible if Notre Dame lives up to that 20‑point line. His Wisconsin pick brings zero points, so a blowout wipes any chance of a comeback."
   }
 }
