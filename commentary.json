@@ -1,14 +1,13 @@
 {
-  "generated": "2026-08-19T18:43:48.012Z",
+  "generated": "2026-08-19T18:45:23.814Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "An LSU win pushes Karan ahead of Ty in the standings, tightening the race. The twelve points at stake could flip the leaderboard before week two.",
-    "401856661": "Murph's Louisville draft is in trouble; the -6.5 line shows the market doubts his pick. Ty's Ole Miss sits comfortably with a six‑point cushion and a 15‑point pool value.",
-    "401858212": "Jim is playing with house money on SMU, a two‑point favorite. Merc, on the other hand, has nothing at stake with Florida State.",
-    "401858432": "Jim's weekend is a straight 25‑point grab at home. No opponent can dent that pool lead in week one.",
-    "401858438": "Ty looks the worst if Notre Dame covers the 20.5‑point spread. A loss would leave him with zero pool points while Mike banks twenty."
+    "401856660": "A LSU win would tighten the race between Ty and Karan, cutting Ty's lead to a single digit. The -9.5 spread signals a comfortable home advantage for Karan's ten‑point pick. Ty's two‑point draft hangs in the balance.",
+    "401856661": "Murph's Louisville pick looks like a 6.5‑point gamble; the Rebels are -6.5. If the Cardinals pull an upset, Murph snags three points, but the market already treats his draft as a tier‑down. Ty's Ole Miss sits comfortably with fifteen.",
+    "401858432": "Jim's weekend is a straight 25‑point payday. The -50.5 line makes Ohio State an overwhelming favorite, leaving no room for surprise. Jim collects the bulk of the pot before the season even starts.",
+    "401858438": "Ty looks the worst if this blows up for him. A 20.5‑point gap makes a Notre Dame win almost a certainty, leaving Ty's zero‑point Wisconsin draft hanging by a thread. Mike's twenty‑point haul sits safely on the board."
   }
 }
