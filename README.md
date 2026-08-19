@@ -1,5 +1,7 @@
 # AP Poll Pick'em
 
+**Live: https://karakotaram.github.io/ap-poll-pickem/**
+
 Single-file static site that scores the 8-team college football pick'em pool off
 the live AP Top 25. Everything is in `index.html` — no build step, no backend,
 no API key.
@@ -10,13 +12,15 @@ Open `index.html` in a browser, or serve the folder:
 
     python3 -m http.server 8000     # then http://localhost:8000
 
-## Deploy (free, gives the group a shared URL)
+## Deploy
 
-Any static host works, since it's one file:
+Already deployed to GitHub Pages from `main` (root). Any push to `main`
+rebuilds and republishes automatically — usually live within a minute:
 
-- **Netlify Drop** — drag the folder onto https://app.netlify.com/drop
-- **Vercel** — `npx vercel` in this folder
-- **GitHub Pages** — commit `index.html`, enable Pages on the repo
+    git add -A && git commit -m "update picks" && git push
+
+The page carries a `noindex, nofollow` meta tag, so it won't turn up in search
+results — it's reachable by anyone with the link, but not discoverable.
 
 ## How it works
 
