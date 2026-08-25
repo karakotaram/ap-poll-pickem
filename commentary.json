@@ -1,8 +1,10 @@
 {
-  "generated": "2026-08-21T15:26:22.502Z",
+  "generated": "2026-08-25T13:54:53.756Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
-  "games": {}
+  "games": {
+    "401858432": "Jim's weekend hinges on a single twenty‑five‑point holding. Ohio State must stay in the poll to keep those points; there is no opposing draft pick to affect the outcome."
+  }
 }
