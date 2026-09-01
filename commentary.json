@@ -1,11 +1,10 @@
 {
-  "generated": "2026-08-28T23:49:08.748Z",
+  "generated": "2026-09-01T17:15:46.131Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 1,
   "poll": "Preseason",
   "games": {
-    "401856660": "Karan's LSU selection carries ten points at risk, a exposure Ty's Clemson pick does not share. The 10.5-point line favors LSU, reinforcing the larger stake for Karan.",
-    "401858212": "Jim risks his five points with SMU, while Merc has nothing at stake with Florida State. The 2.5-point line favors SMU, so the market expects Jim's pick to perform better."
+    "401864494": "Mike’s USC pick provides ten points this weekend. No other owner has points in this game, so his result stands alone."
   }
 }
