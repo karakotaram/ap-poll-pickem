@@ -144,6 +144,38 @@ Trial a model without publishing:
     gh workflow run "Generate matchup commentary" \
       --repo karakotaram/ap-poll-pickem -f model=<id> -f no_write=true
 
+## Teams
+
+The **Teams** tab lists all 48 drafted teams with their record, last result, and
+next game, alongside the AP rank and points they carry in the selected poll.
+Every column except "Last game" sorts — click a header, click again to reverse.
+Default order groups by owner in standings order.
+
+Data comes from ESPN's per-team schedule endpoint, one call per drafted team
+(~10KB gzipped each, cached in `localStorage` for 15 minutes):
+
+    https://site.api.espn.com/apis/site/v2/sports/football/
+      college-football/teams/<id>/schedule?season=<year>
+
+One call per team rather than a weekly scoreboard sweep, because "last completed
+game" and "next scheduled game" stay unambiguous through bye weeks — and ESPN's
+Week 1 sprawls across two calendar weekends, so "last week" is not a
+well-defined question early in the season. The week label is shown next to each
+game, which is what makes a bye visible (last: Wk 4, next: Wk 6).
+
+Two ESPN quirks the code works around:
+
+- **`team.recordSummary` ignores `?season=`.** It always reports the *current*
+  season, so `?season=2025` would show a 2026 record. Records are counted from
+  the completed events instead.
+- **Postseason week numbers restart at 1.** A January playoff game reports
+  `week.number: 1`, which would render as "Wk 1" next to a September date. The
+  week's own `text` is used instead, so those read "Bowls".
+
+Bowls and the playoff live in `seasontype=3`, a separate request. It only fires
+for teams whose regular season has nothing left, so it costs nothing until
+December.
+
 ## Scoring
 
 | AP rank | Points |

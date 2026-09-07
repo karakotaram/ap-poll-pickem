@@ -201,6 +201,22 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
 .owner.free{color:var(--muted);font-style:italic}
 .bpts{font-variant-numeric:tabular-nums;font-weight:640;width:30px;text-align:right;flex:none;color:var(--ink-2)}
 
+/* teams */
+.tmrow:hover{background:var(--surface-2)}
+.tmrow.tmzero{opacity:.62}
+.tmteam{font-weight:600}
+.tmown{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.tmpts{font-weight:640}
+.tmnext{white-space:nowrap}
+.tmres{font-weight:660;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tmres.w{color:var(--good)} .tmres.l{color:var(--bad)}
+.tmsub{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;margin-top:2px}
+.tmdash{color:var(--muted)}
+.tmwait{color:var(--muted);letter-spacing:.12em}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--ink)}
+th .arw{font-size:8px;margin-left:4px;opacity:.7}
+
 /* misc */
 .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;padding:14px 18px}
 .rule{background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--ink-2)}
@@ -240,12 +256,14 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
   <button class="tab" role="tab" aria-selected="false" data-p="payouts">Payouts</button>
   <button class="tab" role="tab" aria-selected="false" data-p="history">History</button>
   <button class="tab" role="tab" aria-selected="false" data-p="board">Big Board</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="teams">Teams</button>
 </div>
 
 <section class="panel" id="p-standings"></section>
 <section class="panel" id="p-payouts" hidden></section>
 <section class="panel" id="p-history" hidden></section>
 <section class="panel" id="p-board" hidden></section>
+<section class="panel" id="p-teams" hidden></section>
 
 <div class="status" id="status"></div>
 </div>
@@ -443,6 +461,7 @@ function draw(){
   drawPayouts(rows);
   drawHistory();
   drawBoard(poll, rows);
+  drawTeams();
   drawMatchups();
 }
 
@@ -1082,6 +1101,203 @@ function drawMatchups(){
     <div class="mzgrid">${cards}</div>`;
 }
 
+/* ==================================================================
+   Teams — every drafted team's record, last result and next game.
+   ESPN's per-team schedule endpoint answers all three in one call and
+   gets byes right for free: "last completed game" and "next scheduled
+   game" are unambiguous even when a team sits out a week. Records are
+   derived from the events rather than read off team.recordSummary,
+   which always reports the CURRENT season no matter what ?season asks
+   for — it would quietly show a 2026 record on a 2025 page.
+   ================================================================== */
+const SCHED_URL = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/';
+const DRAFTED = [...new Set(ROSTER.flatMap(p => p.picks.map(String)))];
+let TEAMMETA = null;                    // id -> {w,l,t,last,next}
+let TSORT = {k:'owner', d:1};
+
+function schedSides(c, id){
+  const cs = c.competitors || [];
+  const me = cs.find(x => String((x.team || {}).id) === String(id));
+  const them = cs.find(x => x !== me);
+  return me && them ? [me, them] : null;
+}
+
+function distillSched(d, id){
+  const out = {w:0, l:0, t:0, last:null, next:null};
+  const evs = (d.events || []).slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+  evs.forEach(e => {
+    const c = (e.competitions || [])[0]; if(!c) return;
+    const s = schedSides(c, id);         if(!s) return;
+    const [me, them] = s;
+    const st = (c.status || {}).type || {};
+    const tm = them.team || {};
+    const g = {date:e.date, wk:(e.week || {}).number || null,
+               wkText:(e.week || {}).text || null,
+               ha:me.homeAway, neutral:!!c.neutralSite,
+               opp:{id:String(tm.id || ''), name:tm.location || tm.displayName || '',
+                    abbr:tm.abbreviation || ''},
+               timeValid:c.timeValid !== false,
+               state:st.state || 'pre', detail:st.shortDetail || ''};
+    if(st.completed){
+      const pf = +((me.score || {}).value || 0), pa = +((them.score || {}).value || 0);
+      const win = me.winner === true || pf > pa;
+      if(pf === pa) out.t++; else if(win) out.w++; else out.l++;
+      out.last = Object.assign(g, {pf, pa, win, tie:pf === pa});
+    }else if(!out.next){
+      out.next = g;
+    }
+  });
+  return out;
+}
+
+async function schedFor(id, type){
+  const r = await fetch(`${SCHED_URL}${id}/schedule?season=${SEASON}` + (type ? `&seasontype=${type}` : ''),
+                        {cache:'no-store'});
+  if(!r.ok) throw 0;
+  return distillSched(await r.json(), id);
+}
+
+async function loadTeamMeta(){
+  const key = `appickem:${SCHEMA}:sched:${SEASON}`;
+  try{
+    const c = JSON.parse(localStorage.getItem(key) || 'null');
+    if(c && Date.now() - c.at < 15*60*1000){ TEAMMETA = c.m; drawTeams(); return; }
+  }catch(e){}
+
+  const m = {};
+  const one = async id => {
+    try{
+      const v = await schedFor(id);
+      // Bowls and the playoff live in seasontype 3. Only reach for them once the
+      // regular season has nothing left, so this costs nothing until December.
+      if(!v.next){
+        try{
+          const p = await schedFor(id, 3);
+          v.w += p.w; v.l += p.l; v.t += p.t;
+          if(p.last) v.last = p.last;
+          if(p.next) v.next = p.next;
+        }catch(e){}
+      }
+      m[id] = v;
+    }catch(e){ /* one team missing shouldn't blank the tab */ }
+  };
+  for(let i = 0; i < DRAFTED.length; i += 8)
+    await Promise.all(DRAFTED.slice(i, i + 8).map(one));
+
+  TEAMMETA = m;
+  try{ localStorage.setItem(key, JSON.stringify({at:Date.now(), m})); }catch(e){}
+  drawTeams();
+}
+
+const oppName = o => (TEAMS[o.id] ? TEAMS[o.id][0] : (o.name || o.abbr || 'TBD'));
+const sideText = g => (g.neutral ? 'vs ' : g.ha === 'home' ? 'vs ' : 'at ') + oppName(g.opp);
+const recText  = m => m ? m.w + '-' + m.l + (m.t ? '-' + m.t : '') : '';
+/* "Week 12" -> "Wk 12", but leave the postseason's own label ("Bowls") alone:
+   its week numbering restarts at 1, so the raw number reads as September. */
+const wkTag = g => {
+  const t = g.wkText || (g.wk ? 'Week ' + g.wk : '');
+  return t ? ' &middot; ' + esc(t.replace(/^Week /, 'Wk ')) : '';
+};
+
+function kickText(g){
+  if(g.state === 'in') return g.detail || 'Live';
+  const d = new Date(g.date);
+  if(isNaN(d)) return '';
+  if(!g.timeValid) return d.toLocaleDateString(undefined, {weekday:'short', month:'numeric', day:'numeric'}) + ' · TBD';
+  return d.toLocaleString(undefined, {weekday:'short', month:'numeric', day:'numeric',
+                                      hour:'numeric', minute:'2-digit'});
+}
+
+function teamRows(poll){
+  const sm = scoreMap(poll);
+  const place = {};
+  standings(poll).forEach(r => place[r.name] = r.place);
+  return DRAFTED.map(id => {
+    const sc = sm.get(id) || {pts:0, kind:'none'};
+    const o  = OWNER[id] || null;
+    return {id, name:tname(id), owner:o, place:o ? place[o.name] : 99,
+            rank:sc.kind === 'ranked' ? sc.rank : null,
+            rv:  sc.kind === 'rv'     ? sc.rvPlace : null,
+            pts:sc.pts || 0, meta:TEAMMETA ? (TEAMMETA[id] || null) : null};
+  });
+}
+
+/* Unranked sorts after every ranked team; receiving-votes sits between. */
+const apKey   = r => r.rank || (r.rv ? 100 + r.rv : 999);
+const winPct  = m => (m && m.w + m.l + m.t) ? (m.w + m.t * .5) / (m.w + m.l + m.t) : -1;
+const nextTs  = r => (r.meta && r.meta.next) ? new Date(r.meta.next.date).getTime() : Infinity;
+
+const TCMP = {
+  team:  (a,b) => a.name.localeCompare(b.name),
+  owner: (a,b) => a.place - b.place || b.pts - a.pts || apKey(a) - apKey(b) || a.name.localeCompare(b.name),
+  ap:    (a,b) => apKey(a) - apKey(b) || a.name.localeCompare(b.name),
+  pts:   (a,b) => b.pts - a.pts || apKey(a) - apKey(b),
+  rec:   (a,b) => winPct(b.meta) - winPct(a.meta) || (b.meta ? b.meta.w : 0) - (a.meta ? a.meta.w : 0),
+  next:  (a,b) => nextTs(a) - nextTs(b) || a.name.localeCompare(b.name)
+};
+
+function drawTeams(){
+  const poll = POLLS[CUR]; if(!poll) return;
+  const rows = teamRows(poll).sort((a,b) => TSORT.d * TCMP[TSORT.k](a,b));
+  const arw = k => TSORT.k === k ? `<span class="arw">${TSORT.d > 0 ? '&#9650;' : '&#9660;'}</span>` : '';
+
+  const head = `
+    <th class="sortable" data-k="team">Team${arw('team')}</th>
+    <th class="sortable" data-k="owner">Owner${arw('owner')}</th>
+    <th class="sortable num" data-k="ap">AP${arw('ap')}</th>
+    <th class="sortable num" data-k="pts">Pts${arw('pts')}</th>
+    <th class="sortable num" data-k="rec">Record${arw('rec')}</th>
+    <th>Last game</th>
+    <th class="sortable" data-k="next">Next game${arw('next')}</th>`;
+
+  const wait = '<span class="tmwait">&middot;&middot;&middot;</span>';
+  const body = rows.map(r => {
+    const m = r.meta;
+    const ap = r.rank ? r.rank : r.rv ? 'RV' + r.rv : '<span class="tmdash">&mdash;</span>';
+
+    const last = !m ? wait : !m.last ? '<span class="tmdash">&mdash;</span>'
+      : `<span class="tmres ${m.last.tie ? '' : m.last.win ? 'w' : 'l'}">${
+           m.last.tie ? 'T' : m.last.win ? 'W' : 'L'} ${m.last.pf}&ndash;${m.last.pa}</span>
+         <span class="tmsub">${esc(sideText(m.last))}${m.last.neutral ? ' (N)' : ''}${wkTag(m.last)}</span>`;
+
+    const next = !m ? wait : !m.next ? '<span class="tmdash">season over</span>'
+      : `<span class="tmnext">${esc(sideText(m.next))}${m.next.neutral ? ' (N)' : ''}</span>
+         <span class="tmsub">${esc(kickText(m.next))}${wkTag(m.next)}</span>`;
+
+    return `<tr class="tmrow${r.pts ? '' : ' tmzero'}">
+      <td><span class="tmteam">${esc(r.name)}</span></td>
+      <td>${r.owner ? `<span class="tmown"><span class="swatch" style="background:var(--s${r.owner.slot})"></span>${esc(r.owner.name)}</span>`
+                    : '<span class="tmdash">&mdash;</span>'}</td>
+      <td class="num">${ap}</td>
+      <td class="num tmpts">${r.pts || '<span class="tmdash">0</span>'}</td>
+      <td class="num">${m ? esc(recText(m)) : wait}</td>
+      <td>${last}</td>
+      <td>${next}</td>
+    </tr>`;
+  }).join('');
+
+  el('p-teams').innerHTML = `
+    <div class="card">
+      <div class="chead">
+        <span class="ctitle">Teams</span>
+        <span class="cnote">${DRAFTED.length} drafted teams &middot; ranks and points off the ${esc(poll.label)} poll
+          &middot; ${TEAMMETA ? 'click a column to sort' : 'loading schedules&hellip;'}</span>
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr>${head}</tr></thead>
+        <tbody>${body}</tbody>
+      </table></div>
+    </div>`;
+
+  el('p-teams').querySelectorAll('th.sortable').forEach(th => {
+    th.onclick = () => {
+      const k = th.dataset.k;
+      TSORT = {k, d:TSORT.k === k ? -TSORT.d : 1};
+      drawTeams();
+    };
+  });
+}
+
 /* ---------- chrome ---------- */
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
@@ -1102,6 +1318,7 @@ themeBtn.onclick = () => {
 loadPolls();
 loadGames();
 loadColumn();
+loadTeamMeta();
 </script>
 </body>
 </html>
