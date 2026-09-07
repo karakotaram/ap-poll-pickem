@@ -936,8 +936,16 @@ function stakesLine(a){
   }
   if(a.sameOwner){
     const [x, y] = a.owned;
-    return `<em>${esc(x.owner.name)}</em> owns both sides — ${esc(x.name)} and ${esc(y.name)} — `
-         + `so this one is a hedge: the win and the loss both land in the same column.`;
+    const scoring = a.owned.filter(s => s.pts);
+    if(scoring.length === 2)
+      return `<em>${esc(x.owner.name)}</em> owns both sides — ${esc(x.name)} and ${esc(y.name)} — `
+           + `so the result stays in one column; the ${a.atRisk} points split ${x.pts}/${y.pts} `
+           + `and only the loser’s are exposed.`;
+    if(scoring.length === 1)
+      return `<em>${esc(x.owner.name)}</em> owns both sides, but only ${esc(scoring[0].name)} is scoring `
+           + `(${rankTag(scoring[0])}, ${scoring[0].pts} pt${plural(scoring[0].pts)}) — `
+           + `a win by the other banks nothing.`;
+    return `<em>${esc(x.owner.name)}</em> owns both sides and neither is on the board.`;
   }
   const x = a.owned[0];
   const foe = a.sides.find(s => s !== x);
@@ -973,27 +981,94 @@ function tierSentence(a){
        + `takes ${esc(s.owner.name)} to ${nx}.`;
 }
 
-function resultSentence(a){
+/* What a side stood to lose, phrased to follow "<owner>’s ". Reads differently
+   depending on where the team actually sat, which is what stops two games with
+   the same ownership shape from producing the same sentence. */
+function exposure(s, terse){
+  if(!s.pts) return `${esc(s.name)} had nothing on the board to lose`;
+  if(s.rv)   return `${esc(s.name)} was ${rankTag(s)} and worth ${s.pts} — the first points out when the poll resets`;
+  const t = tierOf(s.rank), nx = nextDownPts(s.rank);
+  // the rank is already on the card above; lead with what it was worth instead
+  if(terse) return `${esc(s.name)} carried ${s.pts} point${plural(s.pts)}, with ${nx} a tier below`;
+  if(s.rank === 1)    return `${esc(s.name)} was No. 1 and the full ${s.pts}, with only one direction available`;
+  if(s.rank === 25)   return `${esc(s.name)} was No. 25, the last scoring slot in the poll`;
+  if(s.rank === t[1]) return `${esc(s.name)} sat at No. ${s.rank}, the bottom of the ${t[2]}-point band, `
+                           + `with ${nx} the next rung down`;
+  return `${esc(s.name)} was ${rankTag(s)} and ${s.pts} point${plural(s.pts)}, ${nx} a tier below`;
+}
+
+/* How the game itself went. Only speaks up when the margin is actually
+   notable — a routine 17-point win gets nothing and leaves the room to the
+   poll and pool clauses. */
+function marginText(w, l){
+  const m = w.score - l.score;
+  if(l.score === 0) return 'A shutout.';
+  if(m <= 2)        return `By ${m} point${plural(m)}.`;
+  if(m === 3)       return 'A field goal decided it.';
+  if(m <= 8)        return 'A one-score finish.';
+  return '';
+}
+
+/* What the poll made of the two of them going in. */
+function upsetText(w, l){
+  if(!w.rank && !w.rv && l.rank)
+    return `${esc(l.name)} came in at No. ${l.rank} and lost to a team outside the poll.`;
+  if(w.rv && l.rank)
+    return `${esc(w.name)} was only receiving votes; ${esc(l.name)} was No. ${l.rank}.`;
+  if(w.rank && l.rank && w.rank > l.rank)
+    return `No. ${w.rank} over No. ${l.rank}.`;
+  return '';
+}
+
+/* The mirror of exposure(): what the winner protected. Phrasing turns on where
+   the team sits in the tiers, so a week of routine wins doesn't produce a wall
+   of identical sentences. */
+function holds(w, l, terse){
+  const foe = (l.rank && !terse) ? ` over No. ${l.rank} ${esc(l.name)}` : '';
+  if(!w.pts)        return `${esc(w.name)} is still off the board${foe}; the next poll decides whether that changes.`;
+  if(w.rv)          return `${esc(w.name)} is still only receiving votes${foe}, worth ${w.pts}.`;
+  if(w.rank === 1)  return `${esc(w.name)} holds the top line${foe} and the full ${w.pts}.`;
+  if(w.rank === 25) return `${esc(w.name)} stays in the last scoring slot${foe}.`;
+  const t = tierOf(w.rank);
+  if(w.rank === t[1]) return `${esc(w.name)} holds No. ${w.rank}${foe}, the bottom of the ${t[2]}-point band.`;
+  return `${esc(w.name)} defends ${rankTag(w)}${foe} and the ${w.pts} point${plural(w.pts)} that come with it.`;
+}
+
+/* Result prose for a finished game.
+   ESPN drops the betting line once a game goes final, so the pre-game
+   "against expectation" angle isn't available here — variety comes from which
+   facts are notable, and every clause is conditional.
+   Points come from AP position: a win defends a ranking, it never earns
+   points, and nothing below says otherwise. */
+function resultSentence(g, a){
   const w = a.sides.find(s => s.winner), l = a.sides.find(s => !s.winner);
   if(!w || !l) return '';
-  const head = `Final: ${esc(w.name)} ${w.score}, ${esc(l.name)} ${l.score}.`;
-  let tail;
+
+  const out = [`Final: ${esc(w.name)} ${w.score}, ${esc(l.name)} ${l.score}.`];
+  const shape = marginText(w, l); if(shape) out.push(shape);
+  const upset = upsetText(w, l);  if(upset) out.push(upset);
+  const said = !!upset;           // the rank comparison is already in the prose
+
   if(a.h2h){
-    // Both owned by different people — say who got hurt, not just who won.
-    tail = `<em>${esc(w.owner.name)}</em> takes the head-to-head; `
-         + (l.pts
-            ? `<em>${esc(l.owner.name)}</em>’s ${esc(l.name)} (${rankTag(l)}, ${l.pts} pt${plural(l.pts)}) `
-              + `is the one exposed when the poll resets.`
-            : `<em>${esc(l.owner.name)}</em>’s ${esc(l.name)} had nothing on the board to lose.`);
-  } else if(a.sameOwner){
-    tail = `<em>${esc(w.owner.name)}</em> owned both, so it is a wash.`;
-  } else if(w.owner){
-    tail = `<em>${esc(w.owner.name)}</em> holds ${w.pts ? w.pts + ' point' + plural(w.pts) : 'the win'}.`;
-  } else {
-    tail = `<em>${esc(l.owner.name)}</em> takes the hit — ${esc(l.name)} `
-         + `was worth ${l.pts} point${plural(l.pts)}.`;
+    // both owners have skin in this one, so say what each side did with it
+    const held = (w.pts && !said) ? ` and ${esc(w.name)} defends ${rankTag(w)}` : '';
+    out.push(`<em>${esc(w.owner.name)}</em> takes the head-to-head${held}; `
+           + `<em>${esc(l.owner.name)}</em>’s ${exposure(l, said)}.`);
+  }else if(a.sameOwner){
+    out.push(!w.pts
+      ? `<em>${esc(w.owner.name)}</em> owned both sides, but the win banks nothing — `
+        + `${exposure(l, said)}.`
+      : !l.pts
+      ? `<em>${esc(w.owner.name)}</em> owned both sides; ${esc(w.name)} defends ${rankTag(w)} `
+        + `and ${esc(l.name)} had nothing on the board to lose.`
+      : `<em>${esc(w.owner.name)}</em> owned both sides, so it stays in one column: `
+        + `${esc(w.name)} defends ${rankTag(w)} while ${exposure(l, said)}.`);
+  }else if(w.owner){
+    out.push(`<em>${esc(w.owner.name)}</em>’s ${holds(w, l, said)}`);
+  }else{
+    out.push(`<em>${esc(l.owner.name)}</em> takes the hit; ${exposure(l, said)}.`);
   }
-  return head + ' ' + tail;
+  return out.join(' ');
 }
 
 function whenText(g){
@@ -1090,7 +1165,7 @@ function drawMatchups(){
     // written before kickoff and would be describing a game that's over.
     const col = (!done && usableColumn && COLUMN.games[g.id]) ? COLUMN.games[g.id] : null;
     const body = done
-      ? [resultSentence(a)].filter(Boolean).join(' ')
+      ? resultSentence(g, a)
       : col ? columnHtml(col)
             : [stakesLine(a), lineSentence(g, a), tierSentence(a)].filter(Boolean).join(' ');
 

@@ -59,6 +59,30 @@ the line, who owns what, and what the scoring table says a tier slip costs. It
 switches to a result summary once a game goes final. No prose is hand-written,
 so it never goes stale, and nothing in it is invented.
 
+### Result prose
+
+ESPN drops the betting line the moment a game goes final, so a finished game
+cannot be described against expectation the way a preview can. The result
+summary is built instead from the facts that survive, as independent clauses
+that each appear only when they have something to say:
+
+- **Margin** — shutout, one point, a field goal, one score. A routine 17-point
+  win says nothing and leaves the room to the clauses below.
+- **The poll** — an unranked team beating a ranked one, or a lower-ranked team
+  winning outright.
+- **The pool** — who was exposed, phrased by where that team actually sat:
+  bottom of a scoring band, the last slot at No. 25, receiving votes, or not on
+  the board at all.
+
+Clauses know what the earlier ones said, so a rank already given isn't repeated
+a sentence later. The effect is that two games with the same ownership shape
+still read differently, which the single fixed template they replaced did not.
+
+A win **defends** a ranking and never earns points, and the prose never implies
+otherwise. Owning both sides of a game is only called a wash when both teams
+actually score — if the winner is unranked the win banks nothing, and saying
+otherwise inverts the owner's exposure.
+
 ## The column (optional, Groq)
 
 The blurbs are written by an LLM **at build time**, never in the browser. A
