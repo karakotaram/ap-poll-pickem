@@ -146,10 +146,14 @@ Trial a model without publishing:
 
 ## Teams
 
-The **Teams** tab lists all 48 drafted teams with their record, last result, and
-next game, alongside the AP rank and points they carry in the selected poll.
-Every column except "Last game" sorts — click a header, click again to reverse.
-Default order groups by owner in standings order.
+The **Teams** tab shows one player's six teams at a time — pick the player from
+the dropdown in the card header — with each team's record, last result, next
+game and the betting line, alongside the AP rank and points they carry in the
+selected poll. Every column except "Last game" sorts; click a header, click
+again to reverse. The chosen player is remembered in `localStorage`.
+
+Schedules for all 48 drafted teams are fetched up front, so switching players
+is instant.
 
 Data comes from ESPN's per-team schedule endpoint, one call per drafted team
 (~10KB gzipped each, cached in `localStorage` for 15 minutes):
@@ -175,6 +179,19 @@ Two ESPN quirks the code works around:
 Bowls and the playoff live in `seasontype=3`, a separate request. It only fires
 for teams whose regular season has nothing left, so it costs nothing until
 December.
+
+### The line
+
+Lines are not on the schedule endpoint, so they come from the weekly scoreboard
+— one request per distinct week the next games fall in, which is normally one.
+
+ESPN quotes `spread` from the **home team's** side: negative means the home team
+is favoured. The table flips it to the drafted team's side, so `-7.5` always
+means *this* team is laying 7.5 and `+7.5` means they're getting it. Verified
+against ESPN's own `details` string on all 55 games with a posted line.
+
+A dash means no line is posted — normal for games against FCS opponents, and for
+everything more than a week or so out.
 
 ## Scoring
 

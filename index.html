@@ -205,7 +205,13 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
 .tmrow:hover{background:var(--surface-2)}
 .tmrow.tmzero{opacity:.62}
 .tmteam{font-weight:600}
-.tmown{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.tmpick{display:flex;align-items:center;gap:7px}
+.tmpick select{
+  font:inherit;font-size:13px;font-weight:620;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:7px;padding:3px 8px;cursor:pointer
+}
+.tmline{font-weight:660;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tmline.fav{color:var(--good)} .tmline.dog{color:var(--ink-2)}
 .tmpts{font-weight:640}
 .tmnext{white-space:nowrap}
 .tmres{font-weight:660;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -383,9 +389,12 @@ const SCHEMA = 'v2';
 const CACHE_KEY = `appickem:${SCHEMA}:${SEASON}`;
 const CACHE_TTL = 30 * 60 * 1000;   // 30 min
 
+// Preferences are not caches — a schema bump must not reset what the user chose.
+const PREFS = new Set(['appickem:theme', 'appickem:owner']);
+
 try{   // drop caches written by an older schema
   Object.keys(localStorage)
-    .filter(k => k.startsWith('appickem:') && k !== 'appickem:theme' && !k.startsWith(`appickem:${SCHEMA}:`))
+    .filter(k => k.startsWith('appickem:') && !PREFS.has(k) && !k.startsWith(`appickem:${SCHEMA}:`))
     .forEach(k => localStorage.removeItem(k));
 }catch(e){}
 
@@ -1113,7 +1122,9 @@ function drawMatchups(){
 const SCHED_URL = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/';
 const DRAFTED = [...new Set(ROSTER.flatMap(p => p.picks.map(String)))];
 let TEAMMETA = null;                    // id -> {w,l,t,last,next}
-let TSORT = {k:'owner', d:1};
+let ODDS = null;                        // eventId -> {sp, ou} (sp is the HOME team's number)
+let TSORT = {k:'ap', d:1};
+let TOWNER = localStorage.getItem('appickem:owner') || ROSTER[0].name;
 
 function schedSides(c, id){
   const cs = c.competitors || [];
@@ -1131,8 +1142,10 @@ function distillSched(d, id){
     const [me, them] = s;
     const st = (c.status || {}).type || {};
     const tm = them.team || {};
-    const g = {date:e.date, wk:(e.week || {}).number || null,
+    const g = {id:String(e.id || ''), date:e.date,
+               wk:(e.week || {}).number || null,
                wkText:(e.week || {}).text || null,
+               st:((e.seasonType || {}).type) || 2,
                ha:me.homeAway, neutral:!!c.neutralSite,
                opp:{id:String(tm.id || ''), name:tm.location || tm.displayName || '',
                     abbr:tm.abbreviation || ''},
@@ -1157,11 +1170,38 @@ async function schedFor(id, type){
   return distillSched(await r.json(), id);
 }
 
+/* Lines live on the weekly scoreboard, not the per-team schedule. Fetching the
+   one or two weeks the next games actually fall in beats 40-odd per-event calls.
+   ESPN reports `spread` from the HOME team's side: negative means home favored.
+   Verified against every 2026 game with a posted line. */
+async function loadOdds(meta){
+  const weeks = new Map();
+  Object.values(meta).forEach(m => {
+    if(m.next && m.next.wk) weeks.set(m.next.st + ':' + m.next.wk, {t:m.next.st, w:m.next.wk});
+  });
+  const idx = {};
+  await Promise.all([...weeks.values()].map(async ({t, w}) => {
+    try{
+      const r = await fetch(`${SB_URL}?groups=80&limit=400&week=${w}&seasontype=${t}`, {cache:'no-store'});
+      if(!r.ok) return;
+      const d = await r.json();
+      (d.events || []).forEach(e => {
+        const o = (((e.competitions || [])[0] || {}).odds || [])[0];
+        if(!o) return;
+        if(o.spread == null && o.overUnder == null) return;
+        idx[String(e.id)] = {sp:o.spread == null ? null : o.spread,
+                             ou:o.overUnder == null ? null : o.overUnder};
+      });
+    }catch(e){ /* no line is a fine answer; most are posted late in the week */ }
+  }));
+  return idx;
+}
+
 async function loadTeamMeta(){
   const key = `appickem:${SCHEMA}:sched:${SEASON}`;
   try{
     const c = JSON.parse(localStorage.getItem(key) || 'null');
-    if(c && Date.now() - c.at < 15*60*1000){ TEAMMETA = c.m; drawTeams(); return; }
+    if(c && Date.now() - c.at < 15*60*1000){ TEAMMETA = c.m; ODDS = c.o || {}; drawTeams(); return; }
   }catch(e){}
 
   const m = {};
@@ -1185,7 +1225,9 @@ async function loadTeamMeta(){
     await Promise.all(DRAFTED.slice(i, i + 8).map(one));
 
   TEAMMETA = m;
-  try{ localStorage.setItem(key, JSON.stringify({at:Date.now(), m})); }catch(e){}
+  drawTeams();                                   // table first, lines when they land
+  ODDS = await loadOdds(m);
+  try{ localStorage.setItem(key, JSON.stringify({at:Date.now(), m, o:ODDS})); }catch(e){}
   drawTeams();
 }
 
@@ -1210,16 +1252,25 @@ function kickText(g){
 
 function teamRows(poll){
   const sm = scoreMap(poll);
-  const place = {};
-  standings(poll).forEach(r => place[r.name] = r.place);
-  return DRAFTED.map(id => {
+  const p  = ROSTER.find(x => x.name === TOWNER) || ROSTER[0];
+  return p.picks.map(String).map(id => {
     const sc = sm.get(id) || {pts:0, kind:'none'};
-    const o  = OWNER[id] || null;
-    return {id, name:tname(id), owner:o, place:o ? place[o.name] : 99,
+    return {id, name:tname(id),
             rank:sc.kind === 'ranked' ? sc.rank : null,
             rv:  sc.kind === 'rv'     ? sc.rvPlace : null,
             pts:sc.pts || 0, meta:TEAMMETA ? (TEAMMETA[id] || null) : null};
   });
+}
+
+/* The line, flipped to the drafted team's side: negative means they're favoured.
+   ESPN quotes `spread` from the home team, so an away team's number inverts. */
+function lineFor(g){
+  const o = (ODDS && g) ? ODDS[g.id] : null;
+  if(!o) return null;
+  const sp = o.sp == null ? null : (g.ha === 'home' ? o.sp : -o.sp);
+  return {sp, ou:o.ou,
+          text: sp == null ? null : sp === 0 ? 'PK'
+              : (sp > 0 ? '+' : '') + (Math.round(sp * 10) / 10)};
 }
 
 /* Unranked sorts after every ranked team; receiving-votes sits between. */
@@ -1227,13 +1278,18 @@ const apKey   = r => r.rank || (r.rv ? 100 + r.rv : 999);
 const winPct  = m => (m && m.w + m.l + m.t) ? (m.w + m.t * .5) / (m.w + m.l + m.t) : -1;
 const nextTs  = r => (r.meta && r.meta.next) ? new Date(r.meta.next.date).getTime() : Infinity;
 
+const lineKey = r => {
+  const l = (r.meta && r.meta.next) ? lineFor(r.meta.next) : null;
+  return (l && l.sp != null) ? l.sp : Infinity;     // no posted line sorts last
+};
+
 const TCMP = {
   team:  (a,b) => a.name.localeCompare(b.name),
-  owner: (a,b) => a.place - b.place || b.pts - a.pts || apKey(a) - apKey(b) || a.name.localeCompare(b.name),
   ap:    (a,b) => apKey(a) - apKey(b) || a.name.localeCompare(b.name),
   pts:   (a,b) => b.pts - a.pts || apKey(a) - apKey(b),
   rec:   (a,b) => winPct(b.meta) - winPct(a.meta) || (b.meta ? b.meta.w : 0) - (a.meta ? a.meta.w : 0),
-  next:  (a,b) => nextTs(a) - nextTs(b) || a.name.localeCompare(b.name)
+  next:  (a,b) => nextTs(a) - nextTs(b) || a.name.localeCompare(b.name),
+  line:  (a,b) => lineKey(a) - lineKey(b) || a.name.localeCompare(b.name)
 };
 
 function drawTeams(){
@@ -1243,12 +1299,12 @@ function drawTeams(){
 
   const head = `
     <th class="sortable" data-k="team">Team${arw('team')}</th>
-    <th class="sortable" data-k="owner">Owner${arw('owner')}</th>
     <th class="sortable num" data-k="ap">AP${arw('ap')}</th>
     <th class="sortable num" data-k="pts">Pts${arw('pts')}</th>
     <th class="sortable num" data-k="rec">Record${arw('rec')}</th>
     <th>Last game</th>
-    <th class="sortable" data-k="next">Next game${arw('next')}</th>`;
+    <th class="sortable" data-k="next">Next game${arw('next')}</th>
+    <th class="sortable num" data-k="line">Line${arw('line')}</th>`;
 
   const wait = '<span class="tmwait">&middot;&middot;&middot;</span>';
   const body = rows.map(r => {
@@ -1264,23 +1320,35 @@ function drawTeams(){
       : `<span class="tmnext">${esc(sideText(m.next))}${m.next.neutral ? ' (N)' : ''}</span>
          <span class="tmsub">${esc(kickText(m.next))}${wkTag(m.next)}</span>`;
 
+    const l = (m && m.next) ? lineFor(m.next) : null;
+    const line = !m || !m.next ? '<span class="tmdash">&mdash;</span>'
+      : !l || l.text == null ? '<span class="tmdash" title="no line posted yet">&mdash;</span>'
+      : `<span class="tmline ${l.sp < 0 ? 'fav' : l.sp > 0 ? 'dog' : ''}">${esc(l.text)}</span>
+         ${l.ou != null ? `<span class="tmsub">O/U ${esc(String(l.ou))}</span>` : ''}`;
+
     return `<tr class="tmrow${r.pts ? '' : ' tmzero'}">
       <td><span class="tmteam">${esc(r.name)}</span></td>
-      <td>${r.owner ? `<span class="tmown"><span class="swatch" style="background:var(--s${r.owner.slot})"></span>${esc(r.owner.name)}</span>`
-                    : '<span class="tmdash">&mdash;</span>'}</td>
       <td class="num">${ap}</td>
       <td class="num tmpts">${r.pts || '<span class="tmdash">0</span>'}</td>
       <td class="num">${m ? esc(recText(m)) : wait}</td>
       <td>${last}</td>
       <td>${next}</td>
+      <td class="num">${line}</td>
     </tr>`;
   }).join('');
+
+  const sel = ROSTER.map(p =>
+    `<option value="${esc(p.name)}"${p.name === TOWNER ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+  const me = ROSTER.find(p => p.name === TOWNER) || ROSTER[0];
+  const tot = rows.reduce((s, r) => s + r.pts, 0);
 
   el('p-teams').innerHTML = `
     <div class="card">
       <div class="chead">
         <span class="ctitle">Teams</span>
-        <span class="cnote">${DRAFTED.length} drafted teams &middot; ranks and points off the ${esc(poll.label)} poll
+        <span class="tmpick"><span class="swatch" style="background:var(--s${me.slot})"></span>
+          <select id="tmOwner" aria-label="Show teams for">${sel}</select></span>
+        <span class="cnote">${tot} pts off the ${esc(poll.label)} poll
           &middot; ${TEAMMETA ? 'click a column to sort' : 'loading schedules&hellip;'}</span>
       </div>
       <div class="tblwrap"><table>
@@ -1288,6 +1356,12 @@ function drawTeams(){
         <tbody>${body}</tbody>
       </table></div>
     </div>`;
+
+  el('tmOwner').onchange = e => {
+    TOWNER = e.target.value;
+    try{ localStorage.setItem('appickem:owner', TOWNER); }catch(err){}
+    drawTeams();
+  };
 
   el('p-teams').querySelectorAll('th.sortable').forEach(th => {
     th.onclick = () => {
