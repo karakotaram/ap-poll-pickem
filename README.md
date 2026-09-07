@@ -193,6 +193,13 @@ against ESPN's own `details` string on all 55 games with a posted line.
 A dash means no line is posted — normal for games against FCS opponents, and for
 everything more than a week or so out.
 
+The distilled schedule cache carries its own version (`SCHED_V`) on top of the
+global `SCHEMA`. An entry whose version doesn't match is treated as a miss and
+refetched. Without that gate, a cache written before the line feature shipped
+was still inside its 15-minute TTL and had no event ids to match odds against,
+so every line rendered as a dash — the page looked fine and was quietly wrong.
+Shape checks beat remembering to bump a constant.
+
 ## Scoring
 
 | AP rank | Points |
