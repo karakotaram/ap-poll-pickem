@@ -1,12 +1,11 @@
 {
-  "generated": "2026-09-08T15:24:20.882Z",
+  "generated": "2026-09-08T15:34:06.134Z",
   "model": "openai/gpt-oss-120b",
   "season": 2026,
   "week": 2,
   "poll": "Preseason",
   "games": {
-    "401856782": "John's Oregon pick is worth 20 points, far below the 22.5‑point margin implied by the spread. Chris's Oklahoma State selection carries no points and stands to gain only if the Ducks slip in the poll.",
-    "401856810": "Mike faces the toughest scenario with Arizona, a zero‑point pick, in a game where BYU is favored. Murph's BYU selection holds 10 points and is expected to remain in the same tier.",
-    "401858439": "Merc is exposed to a 20‑point risk with Indiana, while Howard's side carries no draft value. Without a betting line the exposure depends solely on the AP poll outcome."
+    "401856782": "John’s draft sits one tier below a top‑tier selection. A twenty‑two‑point spread reflects the perceived gap, but the actual point value remains at the lower tier.",
+    "401858439": "Merc is exposed to a potential loss that the opponent cannot suffer. Without a line, the only factor is Indiana’s ranking, which puts his points at risk."
   }
 }
