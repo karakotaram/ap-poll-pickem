@@ -59,6 +59,24 @@ the line, who owns what, and what the scoring table says a tier slip costs. It
 switches to a result summary once a game goes final. No prose is hand-written,
 so it never goes stale, and nothing in it is invented.
 
+### Preview prose
+
+The card already displays both ranks, both point totals, both owners and the
+line, so the preview text does not restate any of it. It says three things, each
+only when there is something to say:
+
+- **The shape of the exposure** — points split across two owners, or all of it
+  sitting with one of them while the other has nothing to lose.
+- **What the board thinks**, as a reading rather than a repeat of the number:
+  the board cannot separate them, inside one score, only the upset moves the
+  pool. A mid-range line says nothing worth adding, so it says nothing.
+- **What a slip costs**, as points rather than a band description — "a tier slip
+  costs Chris 5 and Jim 2" instead of naming the band and letting the reader do
+  the subtraction.
+
+No. 25 is excluded from that arithmetic on purpose: below it is "receiving
+votes", which still pays the same 2, so there is no honest delta to quote.
+
 ### Result prose
 
 ESPN drops the betting line the moment a game goes final, so a finished game

@@ -927,58 +927,82 @@ function favorite(g, a){
   return {side, name: side ? side.name : m[1].trim(), by: +m[2]};
 }
 
-function stakesLine(a){
-  if(a.h2h){
-    const [x, y] = a.owned;
-    return `<em>${esc(x.owner.name)}</em>’s ${esc(x.name)} (${rankTag(x)}, ${x.pts} pt${plural(x.pts)}) `
-         + `against <em>${esc(y.owner.name)}</em>’s ${esc(y.name)} (${rankTag(y)}, ${y.pts} pt${plural(y.pts)}). `
-         + `${a.atRisk} pool point${plural(a.atRisk)} on the field, and one of them takes a loss.`;
-  }
-  if(a.sameOwner){
-    const [x, y] = a.owned;
-    const scoring = a.owned.filter(s => s.pts);
-    if(scoring.length === 2)
-      return `<em>${esc(x.owner.name)}</em> owns both sides — ${esc(x.name)} and ${esc(y.name)} — `
-           + `so the result stays in one column; the ${a.atRisk} points split ${x.pts}/${y.pts} `
-           + `and only the loser’s are exposed.`;
-    if(scoring.length === 1)
-      return `<em>${esc(x.owner.name)}</em> owns both sides, but only ${esc(scoring[0].name)} is scoring `
-           + `(${rankTag(scoring[0])}, ${scoring[0].pts} pt${plural(scoring[0].pts)}) — `
-           + `a win by the other banks nothing.`;
-    return `<em>${esc(x.owner.name)}</em> owns both sides and neither is on the board.`;
-  }
-  const x = a.owned[0];
-  const foe = a.sides.find(s => s !== x);
-  return `<em>${esc(x.owner.name)}</em> has ${x.pts} point${plural(x.pts)} riding on ${esc(x.name)} `
-       + `(${rankTag(x)})${foe && foe.rank ? ` against No. ${foe.rank} ${esc(foe.name)}` : ''}.`;
-}
+/* What one tier of slippage actually subtracts. No. 25 is excluded: below it
+   sits "receiving votes", which still pays the same 2, so there is no honest
+   delta to quote. */
+const slipCost = s => (s.rank && s.rank < 25) ? s.pts - nextDownPts(s.rank) : 0;
 
-function lineSentence(g, a){
-  if(!g.line) return 'No line posted yet.';
-  if(/even|pick|\bpk\b/i.test(g.line)) return 'It is on the board as a pick’em.';
+/* Preview prose.
+   The card above already shows both ranks, both point totals and both owners,
+   so the text does not repeat them — it names the SHAPE of the exposure, what
+   the board thinks, and what a slip costs as a number. Every clause fires only
+   when it has something to add, so two previews rarely share a skeleton.
+   Points come from AP position: an upset costs the favourite's owner, it never
+   pays the underdog's. */
+function previewText(g, a, ctx){
+  const out = [];
   const f = favorite(g, a);
-  if(!f) return `The line is ${esc(g.line)}.`;
-  const who = esc(f.name);
-  if(f.by < 3)   return `${who} is favored by just ${f.by} — about as close to a coin flip as the board gets.`;
-  if(f.by <= 7)  return `${who} is a ${f.by}-point favorite, inside one score.`;
-  if(f.by <= 14) return `${who} is favored by ${f.by}.`;
-  return `${who} is a heavy ${f.by}-point favorite, so the live question is the upset, not the win.`;
-}
+  const pick = !!(g.line && /even|pick|\bpk\b/i.test(g.line));
+  const byRisk = a.owned.slice().sort((p, q) => q.pts - p.pts);
 
-function tierSentence(a){
-  const ranked = a.owned.filter(s => s.rank).sort((x, y) => x.rank - y.rank);
-  if(!ranked.length){
-    const up = a.owned.find(s => !s.pts);
-    const foe = up && a.sides.find(s => s !== up && s.rank);
-    if(up && foe) return `${esc(up.name)} is outside the poll entirely — beating a top-25 team is `
-                       + `${esc(up.owner.name)}’s cleanest route to finally putting them on the board.`;
-    return '';
+  // --- the shape of what is at stake ---
+  if(a.sameOwner){
+    const scoring = a.owned.filter(s => s.pts);
+    out.push(scoring.length === 2
+      ? `<em>${esc(byRisk[0].owner.name)}</em> owns both sides, so the ${a.atRisk} points stay in one `
+        + `column — only the loser’s are exposed.`
+      : scoring.length === 1
+        ? `<em>${esc(scoring[0].owner.name)}</em> owns both sides, but only ${esc(scoring[0].name)} is `
+          + `scoring; a win by the other banks nothing.`
+        : `<em>${esc(byRisk[0].owner.name)}</em> owns both sides and neither is on the board.`);
+  }else if(a.h2h){
+    const [hi, lo] = byRisk;
+    const exposedDog = f && f.side && f.side !== hi;
+    out.push(!lo.pts
+      ? (exposedDog
+          ? `<em>${esc(hi.owner.name)}</em>’s ${hi.pts} are the only pool points in the game, `
+            + `and ${esc(hi.name)} is the underdog.`
+          : `Every point in this one is <em>${esc(hi.owner.name)}</em>’s — ${esc(hi.name)} carries `
+            + `${hi.pts}, ${esc(lo.name)} nothing.`)
+      : `${a.atRisk} pool points on the field${ctx && ctx.biggest ? ', the most of any game this week' : ''}, `
+        + `split ${hi.pts}&ndash;${lo.pts}.`);
+  }else{
+    const x = a.owned[0], foe = a.sides.find(s => s !== x);
+    out.push(x.pts
+      ? `<em>${esc(x.owner.name)}</em> has ${x.pts} riding on ${esc(x.name)}`
+        + `${foe && foe.rank ? ` against No. ${foe.rank}` : ''}.`
+      : `${esc(x.name)} is off the board for <em>${esc(x.owner.name)}</em>`
+        + `${foe && foe.rank ? `; No. ${foe.rank} ${esc(foe.name)} is the measuring stick` : ''}.`);
   }
-  const s = ranked[0], t = tierOf(s.rank), nx = nextDownPts(s.rank);
-  if(s.rank === 1) return `${esc(s.name)} is No. 1 and worth the full 25 — for `
-                        + `${esc(s.owner.name)} every result except a win is a step backward.`;
-  return `${esc(s.name)} sits in the ${t[0]}–${t[1]} band worth ${t[2]}; one tier of slippage `
-       + `takes ${esc(s.owner.name)} to ${nx}.`;
+
+  // --- what the board thinks. The meta row above already prints the line on
+  //     every pre-game card, so this reads it rather than repeating it, and
+  //     stays quiet when a mid-range number says nothing worth adding.
+  const dog = f && f.side ? a.sides.find(s => s !== f.side) : null;
+  if(pick)                out.push('The board calls it a pick’em.');
+  else if(!g.line)        out.push('No line posted yet.');
+  else if(f && f.by < 3)  out.push('The board cannot separate them.');
+  else if(f && f.by <= 7) out.push('Inside one score.');
+  else if(f && f.by >= 17 && f.side && f.side.owner && dog && dog.owner && !dog.pts)
+    out.push('Only the upset moves the pool.');
+
+  // --- the cost of a slip, as points rather than a band description ---
+  const hit = a.owned.filter(s => slipCost(s) > 0);
+  if(hit.length === 2 && slipCost(hit[0]) === slipCost(hit[1]))
+    out.push(`A tier slip costs either of them ${slipCost(hit[0])}.`);
+  else if(hit.length === 2)
+    out.push(`A tier slip costs ${hit.map(s => `<em>${esc(s.owner.name)}</em> ${slipCost(s)}`).join(' and ')}.`);
+  else if(hit.length === 1 && a.owned.length === 1)
+    out.push(`A tier slip costs ${slipCost(hit[0])}.`);          // the lead already named them
+  else if(hit.length === 1)
+    out.push(`A tier slip costs <em>${esc(hit[0].owner.name)}</em> ${slipCost(hit[0])}.`);
+  else{
+    const edge = a.owned.find(s => s.rv || s.rank === 25);
+    if(edge) out.push(edge.rv
+      ? `${esc(edge.name)} is only receiving votes — the ${edge.pts} go first when the poll resets.`
+      : `${esc(edge.name)} is No. 25, the last scoring slot in the poll.`);
+  }
+  return out.join(' ');
 }
 
 /* What a side stood to lose, phrased to follow "<owner>’s ". Reads differently
@@ -1126,6 +1150,7 @@ function drawMatchups(){
 
   const top = ranked.slice(0, 3);
   if(!top.length){ host.innerHTML = ''; return; }
+  const maxRisk = Math.max(...ranked.map(m => m.a.atRisk));
 
   // Only trust the column if it was written for the week now on screen.
   const usableColumn = !!(COLUMN && (GAMES.week == null || COLUMN.week === GAMES.week));
@@ -1167,7 +1192,7 @@ function drawMatchups(){
     const body = done
       ? resultSentence(g, a)
       : col ? columnHtml(col)
-            : [stakesLine(a), lineSentence(g, a), tierSentence(a)].filter(Boolean).join(' ');
+            : previewText(g, a, {biggest: a.atRisk > 0 && a.atRisk === maxRisk});
 
     return `<div class="mu">
       <div class="muhead"><span class="murk">${i+1}</span>${tag}${live}
