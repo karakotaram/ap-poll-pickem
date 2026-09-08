@@ -147,6 +147,17 @@ dropped (the page falls back to its built-in text for that game).
 - **Neutral sites** — no home/away/road language when `neutralSite` is true.
   Caught both `"home-field advantage"` at Lambeau and `"a road test"` at a
   neutral-site kickoff.
+- **Inverted exposure** — risk language ("faces the toughest", "most to lose",
+  "exposed", "at risk") may not be attached to an owner whose team in that game
+  is worth 0. Only the span between the name and the risk phrase is checked for
+  negation, so `"Mike has nothing at risk"` still passes. Caught
+  `"Mike faces the toughest scenario"` for an owner holding zero — a blurb the
+  prompt, which warns about this twice, and the audit pass, which is told to
+  catch it, both let through.
+- **Unit confusion** — a sentence may not compare a pool-point figure with the
+  betting margin. Caught `"worth 20 points, far below the 22.5-point margin
+  implied by the spread"`, which is a category error rather than a bad estimate:
+  the two numbers measure unrelated things.
 
 **Audit pass** — a second cold-temperature call fact-checks each surviving
 blurb against only that game's facts, targeting semantic errors numbers can't

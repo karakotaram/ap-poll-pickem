@@ -455,6 +455,45 @@ function nicknameProblem(blurb, facts) {
   return null;
 }
 
+/* Exposure has to point at the owner who actually has points on the field.
+   Both the prompt and the audit are told to catch this, and both passed
+   "Mike faces the toughest scenario" for an owner holding zero. A rule that
+   can be checked gets checked. */
+const RISK_TAIL = /\b(most to lose|stands? to lose|toughest|looks worst|worst position|exposed|exposure|at risk|on the hook|in danger|vulnerable)\b/i;
+const RISK_NEG  = /\b(no|not|nothing|none|never|zero|without)\b/i;
+
+function exposureProblem(blurb, facts) {
+  const owned = [facts.away, facts.home].filter(s => s.owner);
+  const zero  = owned.filter(s => !s.points);
+  if (!zero.length || !owned.some(s => s.points)) return null;   // nothing to invert
+  for (const sentence of blurb.split(/(?<=[.!?])\s+/)) {
+    for (const z of zero) {
+      const who = [z.owner, z.name, z.abbr].filter(Boolean)
+        .map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      // only the span between the name and the risk phrase can negate it, so
+      // "Mike has nothing at risk" still passes
+      const m = new RegExp(`\\b(?:${who})\\b([^.!?]{0,50}?)${RISK_TAIL.source}`, 'i').exec(sentence);
+      if (m && !RISK_NEG.test(m[1]))
+        return `puts the exposure on ${z.owner}, whose ${z.name} is worth 0`;
+    }
+  }
+  return null;
+}
+
+/* Pool points and the betting margin are different units. "worth 20 points,
+   far below the 22.5-point margin" is not a rounding slip, it is a category
+   error, and no amount of prompt wording has stopped it. */
+const COMPARATIVE = /\b(above|below|under|over|more than|less than|greater|smaller|exceeds?|outweighs?|compared (to|with)|versus)\b/i;
+
+function unitProblem(blurb) {
+  for (const sentence of blurb.split(/(?<=[.!?])\s+/)) {
+    if (POINTS_NOUN.test(sentence) && MARGIN_LANG.test(sentence) &&
+        COMPARATIVE.test(sentence) && numbersIn(sentence).length >= 2)
+      return 'compares pool points against the betting margin (different units)';
+  }
+  return null;
+}
+
 function validate(blurb, facts) {
   const sub = substanceProblem(blurb);
   if (sub) return sub;
@@ -462,6 +501,10 @@ function validate(blurb, facts) {
   if (nick) return nick;
   const dir = directionProblem(blurb, facts);
   if (dir) return dir;
+  const exp = exposureProblem(blurb, facts);
+  if (exp) return exp;
+  const unit = unitProblem(blurb);
+  if (unit) return unit;
   const conf = conflationProblem(blurb);
   if (conf) return conf;
   const low = blurb.toLowerCase();
