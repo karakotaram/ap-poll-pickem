@@ -101,7 +101,38 @@ otherwise. Owning both sides of a game is only called a wash when both teams
 actually score — if the winner is unranked the win banks nothing, and saying
 otherwise inverts the owner's exposure.
 
-## The column (optional, Groq)
+## Game context
+
+Each upcoming matchup card opens with two or three sentences about the football
+itself, above the pool read and separated from it. They come from ESPN's
+per-event summary endpoint (no key, CORS-open, three requests — one per card on
+screen — cached 15 minutes):
+
+    https://site.api.espn.com/apis/site/v2/sports/football/
+      college-football/summary?event=<id>
+
+Only structured fields are used: the matchup predictor's win probability and the
+per-team statistical leaders. The sentences are assembled in code, so nothing is
+copied and nothing is invented.
+
+Two things ruled out the obvious alternative of pulling prose from a web search
+or from ESPN's own article text. Republishing somebody's sentences on a public
+page is copying their work, and the articles ESPN attaches to a game are usually
+about other games — the ones hanging off Ohio State–Texas were about Florida
+State and an SEC lawsuit.
+
+No superlative is attached to the leading receiver or rusher on purpose: the
+leading passer normally out-gains both, so "most yards in the game" would be
+wrong.
+
+## The column (retired, Groq)
+
+**The page no longer reads `commentary.json`.** Matchup cards build their context
+from the structured ESPN fields above instead. The workflow's schedule is
+commented out so it stops spending the API key on a file nobody loads; the
+script and manual `workflow_dispatch` are kept in case it is ever revived, and
+the rest of this section describes it as it was.
+
 
 The blurbs are written by an LLM **at build time**, never in the browser. A
 GitHub Action runs `scripts/generate-commentary.mjs` on Tuesdays and Fridays;

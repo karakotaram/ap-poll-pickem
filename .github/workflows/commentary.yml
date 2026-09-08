@@ -1,11 +1,13 @@
 name: Generate matchup commentary
 
-# Tuesday (after the new AP poll settles) and Friday (once lines firm up).
-# Times are UTC; GitHub cron has no timezone support.
+# The page no longer reads commentary.json — matchup cards now build their game
+# context from ESPN's own structured fields instead of an LLM. The schedule is
+# off so this stops spending the Groq key on a file nobody loads; the job is
+# kept for manual runs in case the column is ever revived.
+#   schedule:
+#     - cron: '0 13 * * 2'   # Tue 13:00 UTC  =  9am ET / 6am PT
+#     - cron: '0 15 * * 5'   # Fri 15:00 UTC  = 11am ET / 8am PT
 on:
-  schedule:
-    - cron: '0 13 * * 2'   # Tue 13:00 UTC  =  9am ET / 6am PT
-    - cron: '0 15 * * 5'   # Fri 15:00 UTC  = 11am ET / 8am PT
   workflow_dispatch:        # manual run from the Actions tab
     inputs:
       model:

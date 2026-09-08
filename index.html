@@ -105,6 +105,8 @@ select:hover,.btn:hover{background:var(--surface-2)}
 .mumeta{font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:5px 9px;
         border-top:1px solid var(--grid);padding-top:9px}
 .mumeta b{color:var(--ink-2);font-weight:640}
+.muctx{font-size:12px;line-height:1.5;color:var(--muted);margin:0 0 9px;
+  padding-bottom:9px;border-bottom:1px solid var(--grid)}
 .mubody{font-size:13px;line-height:1.55;color:var(--ink-2)}
 .mubody em{color:var(--ink);font-style:normal;font-weight:600}
 
@@ -927,6 +929,108 @@ function favorite(g, a){
   return {side, name: side ? side.name : m[1].trim(), by: +m[2]};
 }
 
+/* ==================================================================
+   Game context — a couple of sentences about the football, pulled from
+   ESPN's per-event summary. Structured fields only: win probability and
+   statistical leaders. Nothing is copied from anyone's article, and the
+   articles ESPN attaches to a game are usually about other games anyway.
+   ================================================================== */
+const SUM_URL = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=';
+let CONTEXT = {};            // eventId -> distilled facts, or null once fetched and empty
+let CTX_BUSY = false;
+
+const tdIn = s => { const m = /(\d+)\s*TD/i.exec(s || ''); return m ? +m[1] : 0; };
+
+function distillSummary(d){
+  const out = {win:null, pass:[], star:null};
+
+  const p = d.predictor;
+  if(p && p.homeTeam && p.awayTeam){
+    const hp = parseFloat(p.homeTeam.gameProjection), ap = parseFloat(p.awayTeam.gameProjection);
+    if(!isNaN(hp) && !isNaN(ap)){
+      const top = hp >= ap ? p.homeTeam : p.awayTeam;
+      out.win = {id:String(top.id), pct:Math.round(Math.max(hp, ap))};
+    }
+  }
+
+  (d.leaders || []).forEach(t => {
+    const tid = String((t.team || {}).id || '');
+    const pick = n => {
+      const c = (t.leaders || []).find(x => x.name === n);
+      const L = c && (c.leaders || [])[0];
+      return (L && L.athlete) ? L : null;
+    };
+    const pass = pick('passingYards');
+    if(pass) out.pass.push({tid, who:pass.athlete.displayName,
+                            yds:Math.round(pass.value || 0), td:tdIn(pass.displayValue)});
+    [['receivingYards','receiver'], ['rushingYards','rusher']].forEach(([n, role]) => {
+      const L = pick(n);
+      if(!L) return;
+      const yds = Math.round(L.value || 0);
+      if(!out.star || yds > out.star.yds)
+        out.star = {tid, role, who:L.athlete.displayName, yds, td:tdIn(L.displayValue)};
+    });
+  });
+  return out;
+}
+
+/* Only the three cards on screen are fetched, and only once each. */
+let CTX_READ = false;
+function ensureContext(ids){
+  if(!CTX_READ){                                   // hydrate before deciding what's missing
+    CTX_READ = true;
+    try{
+      const c = JSON.parse(localStorage.getItem(`appickem:${SCHEMA}:ctx`) || 'null');
+      if(c && Date.now() - c.at < 15*60*1000) CONTEXT = c.c || {};
+    }catch(e){}
+  }
+  const missing = ids.filter(id => !(id in CONTEXT));
+  if(!missing.length || CTX_BUSY) return;
+  CTX_BUSY = true;
+  Promise.all(missing.map(async id => {
+    try{
+      const r = await fetch(SUM_URL + id, {cache:'no-store'});
+      CONTEXT[id] = r.ok ? distillSummary(await r.json()) : null;
+    }catch(e){ CONTEXT[id] = null; }
+  })).then(() => {
+    CTX_BUSY = false;
+    try{ localStorage.setItem(`appickem:${SCHEMA}:ctx`,
+           JSON.stringify({at:Date.now(), c:CONTEXT})); }catch(e){}
+    drawMatchups();
+  });
+}
+
+function contextText(g, c){
+  if(!c) return '';
+  const out = [];
+
+  if(c.win){
+    const s = [g.away, g.home].find(t => String(t.id) === c.win.id);
+    if(s) out.push(c.win.pct >= 55
+      ? `ESPN’s matchup predictor makes ${esc(s.name)} a ${c.win.pct}% pick.`
+      : `ESPN’s matchup predictor barely separates them, ${c.win.pct}&ndash;${100 - c.win.pct} ${esc(s.name)}.`);
+  }
+
+  // name the team with the player: "Julian Sayin" alone doesn't say which side
+  const who = p => `${esc(tname(p.tid))}’s ${esc(p.who)}`;
+  if(c.pass.length === 2){
+    const [x, y] = c.pass;
+    out.push(`${who(x)} has ${x.yds} passing yards and ${x.td} touchdown${plural(x.td)} this season; `
+           + `${who(y)}, ${y.yds} and ${y.td}.`);
+  }else if(c.pass.length === 1){
+    const x = c.pass[0];
+    out.push(`${who(x)} has ${x.yds} passing yards and ${x.td} touchdown${plural(x.td)} this season.`);
+  }
+
+  // no superlative here on purpose: the leading passer usually out-gains the
+  // leading receiver, so "most in the game" would be wrong.
+  if(c.star)
+    out.push(`${who(c.star)} has ${c.star.yds} ${c.star.role === 'receiver' ? 'receiving' : 'rushing'} `
+           + `yards${c.star.td ? ` and ${c.star.td} touchdown${plural(c.star.td)}` : ''}.`);
+
+  return out.join(' ');
+}
+
 /* What one tier of slippage actually subtracts. No. 25 is excluded: below it
    sits "receiving votes", which still pays the same 2, so there is no honest
    delta to quote. */
@@ -981,7 +1085,7 @@ function previewText(g, a, ctx){
   const dog = f && f.side ? a.sides.find(s => s !== f.side) : null;
   if(pick)                out.push('The board calls it a pick’em.');
   else if(!g.line)        out.push('No line posted yet.');
-  else if(f && f.by < 3)  out.push('The board cannot separate them.');
+  else if(f && f.by < 3)  out.push('Effectively a coin flip.');
   else if(f && f.by <= 7) out.push('Inside one score.');
   else if(f && f.by >= 17 && f.side && f.side.owner && dog && dog.owner && !dog.pts)
     out.push('Only the upset moves the pool.');
@@ -1107,35 +1211,6 @@ function whenText(g){
                                       hour:'numeric', minute:'2-digit'});
 }
 
-/* Optional LLM column, generated in CI (see scripts/generate-commentary.mjs).
-   The API key lives in GitHub Actions secrets and never reaches the browser.
-   If the file is missing, stale, or malformed we silently keep the built-in text. */
-let COLUMN = null;
-
-async function loadColumn(){
-  try{
-    const r = await fetch('commentary.json?t=' + Date.now(), {cache:'no-store'});
-    if(!r.ok) return;
-    const d = await r.json();
-    if(!d || !d.games || typeof d.games !== 'object') return;
-    const ageDays = (Date.now() - new Date(d.generated).getTime()) / 864e5;
-    if(!(ageDays >= 0 && ageDays < 8)) return;      // never show last week's takes
-    COLUMN = d;
-  }catch(e){ /* no column today */ }
-  drawMatchups();
-}
-
-/* LLM text is escaped, then player names are re-emphasised from the known
-   roster only — nothing the model writes can inject markup. */
-function columnHtml(text){
-  let h = esc(String(text));
-  ROSTER.forEach(p => {
-    const n = p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    h = h.replace(new RegExp('(^|[^A-Za-z<])(' + n + ')\\b', 'g'), '$1<em>$2</em>');
-  });
-  return h;
-}
-
 function drawMatchups(){
   const host = el('matchups');
   if(!host) return;
@@ -1151,9 +1226,7 @@ function drawMatchups(){
   const top = ranked.slice(0, 3);
   if(!top.length){ host.innerHTML = ''; return; }
   const maxRisk = Math.max(...ranked.map(m => m.a.atRisk));
-
-  // Only trust the column if it was written for the week now on screen.
-  const usableColumn = !!(COLUMN && (GAMES.week == null || COLUMN.week === GAMES.week));
+  ensureContext(top.filter(m => m.g.state !== 'post').map(m => m.g.id));
 
   const cards = top.map((m, i) => {
     const {g, a} = m;
@@ -1188,17 +1261,16 @@ function drawMatchups(){
 
     // Finished games always get the factual result line — the column was
     // written before kickoff and would be describing a game that's over.
-    const col = (!done && usableColumn && COLUMN.games[g.id]) ? COLUMN.games[g.id] : null;
-    const body = done
-      ? resultSentence(g, a)
-      : col ? columnHtml(col)
-            : previewText(g, a, {biggest: a.atRisk > 0 && a.atRisk === maxRisk});
+    const ctx = done ? '' : contextText(g, CONTEXT[g.id]);
+    const body = done ? resultSentence(g, a)
+                      : previewText(g, a, {biggest: a.atRisk > 0 && a.atRisk === maxRisk});
 
     return `<div class="mu">
       <div class="muhead"><span class="murk">${i+1}</span>${tag}${live}
         <span class="muwhen">${esc(whenText(g))}</span></div>
       <div class="muteams">${row(a.sides[0])}${row(a.sides[1])}</div>
       ${meta.length ? `<div class="mumeta">${meta.join('<span style="opacity:.4">·</span>')}</div>` : ''}
+      ${ctx ? `<p class="muctx">${ctx}</p>` : ''}
       <p class="mubody">${body}</p>
     </div>`;
   }).join('');
@@ -1498,7 +1570,6 @@ themeBtn.onclick = () => {
 
 loadPolls();
 loadGames();
-loadColumn();
 loadTeamMeta();
 </script>
 </body>
