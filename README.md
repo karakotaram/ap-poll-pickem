@@ -291,6 +291,34 @@ was still inside its 15-minute TTL and had no event ids to match odds against,
 so every line rendered as a dash — the page looked fine and was quietly wrong.
 Shape checks beat remembering to bump a constant.
 
+## Weekly email
+
+`scripts/weekly-email.mjs` builds a message with the standings, two or three
+sentences on what moved, and the games that matter next week. It **writes
+`email.html` and `email-subject.txt` and sends nothing** — delivery is the
+workflow's job, so the provider can change without touching the generator.
+
+    DRY_RUN=1 node scripts/weekly-email.mjs     # prints a plain-text preview too
+
+Every sentence is assembled from the poll and the schedule, the same rule the
+page follows: nothing written by a model, nothing invented, and a win defends a
+ranking rather than earning points.
+
+Notes:
+
+- **"What moved" quotes two numbers per player**, their net change and the
+  biggest single team move behind it, because those differ. Oklahoma sliding a
+  tier cost Chris 5 while his net was 3; saying only "gave back 3, with
+  Oklahoma slipping" reads as though that move cost 3.
+- **Ties share the sentence.** When two players post the same change they are
+  named together rather than one being picked arbitrarily.
+- **The body is ASCII**, punctuation included, and the script exits non-zero if
+  a literal non-ASCII character reaches it. A raw em-dash renders as `â€"` in
+  any client that guesses the charset.
+- Games already played are filtered out; an email about last Saturday is
+  useless. Run it after the new poll lands and after the ESPN week rolls over
+  (Mondays around 3am ET) so "next week" means the upcoming slate.
+
 ## Scoring
 
 | AP rank | Points |
