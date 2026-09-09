@@ -239,6 +239,13 @@ again to reverse. The chosen player is remembered in `localStorage`.
 Schedules for all 48 drafted teams are fetched up front, so switching players
 is instant.
 
+**Chg** is the team's point change against the previous poll in the selector,
+named in the card header ("change vs Preseason"). An em-dash means there is no
+earlier poll to compare against, which is different from an en-dash meaning no
+change — the same distinction the Standings tab already draws. Note that ESPN
+labels the first in-season poll "Week 2", so early in the year the comparison
+runs against the preseason poll.
+
 Data comes from ESPN's per-team schedule endpoint, one call per drafted team
 (~10KB gzipped each, cached in `localStorage` for 15 minutes):
 

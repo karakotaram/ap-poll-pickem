@@ -1431,13 +1431,19 @@ function kickText(g){
 
 function teamRows(poll){
   const sm = scoreMap(poll);
+  const pm = CUR > 0 ? scoreMap(POLLS[CUR - 1]) : null;   // the poll before this one
   const p  = ROSTER.find(x => x.name === TOWNER) || ROSTER[0];
   return p.picks.map(String).map(id => {
     const sc = sm.get(id) || {pts:0, kind:'none'};
+    const pts = sc.pts || 0;
     return {id, name:tname(id),
             rank:sc.kind === 'ranked' ? sc.rank : null,
             rv:  sc.kind === 'rv'     ? sc.rvPlace : null,
-            pts:sc.pts || 0, meta:TEAMMETA ? (TEAMMETA[id] || null) : null};
+            pts,
+            // null on the first poll of the season, where there is nothing to
+            // compare against — distinct from a real change of zero
+            chg: pm ? pts - ((pm.get(id) || {}).pts || 0) : null,
+            meta:TEAMMETA ? (TEAMMETA[id] || null) : null};
   });
 }
 
@@ -1466,6 +1472,8 @@ const TCMP = {
   team:  (a,b) => a.name.localeCompare(b.name),
   ap:    (a,b) => apKey(a) - apKey(b) || a.name.localeCompare(b.name),
   pts:   (a,b) => b.pts - a.pts || apKey(a) - apKey(b),
+  chg:   (a,b) => (b.chg == null ? -Infinity : b.chg) - (a.chg == null ? -Infinity : a.chg)
+                  || apKey(a) - apKey(b),
   rec:   (a,b) => winPct(b.meta) - winPct(a.meta) || (b.meta ? b.meta.w : 0) - (a.meta ? a.meta.w : 0),
   next:  (a,b) => nextTs(a) - nextTs(b) || a.name.localeCompare(b.name),
   line:  (a,b) => lineKey(a) - lineKey(b) || a.name.localeCompare(b.name)
@@ -1480,6 +1488,7 @@ function drawTeams(){
     <th class="sortable" data-k="team">Team${arw('team')}</th>
     <th class="sortable num" data-k="ap">AP${arw('ap')}</th>
     <th class="sortable num" data-k="pts">Pts${arw('pts')}</th>
+    <th class="sortable num" data-k="chg">Chg${arw('chg')}</th>
     <th class="sortable num" data-k="rec">Record${arw('rec')}</th>
     <th>Last game</th>
     <th class="sortable" data-k="next">Next game${arw('next')}</th>
@@ -1489,6 +1498,10 @@ function drawTeams(){
   const body = rows.map(r => {
     const m = r.meta;
     const ap = r.rank ? r.rank : r.rv ? 'RV' + r.rv : '<span class="tmdash">&mdash;</span>';
+    const chg = r.chg == null ? '<span class="tmdash">&mdash;</span>'
+      : r.chg > 0 ? `<span class="delta up">&#9650; ${r.chg}</span>`
+      : r.chg < 0 ? `<span class="delta dn">&#9660; ${-r.chg}</span>`
+      : '<span class="tmdash">&ndash;</span>';
 
     const last = !m ? wait : !m.last ? '<span class="tmdash">&mdash;</span>'
       : `<span class="tmres ${m.last.tie ? '' : m.last.win ? 'w' : 'l'}">${
@@ -1509,6 +1522,7 @@ function drawTeams(){
       <td><span class="tmteam">${esc(r.name)}</span></td>
       <td class="num">${ap}</td>
       <td class="num tmpts">${r.pts || '<span class="tmdash">0</span>'}</td>
+      <td class="num">${chg}</td>
       <td class="num">${m ? esc(recText(m)) : wait}</td>
       <td>${last}</td>
       <td>${next}</td>
@@ -1527,7 +1541,8 @@ function drawTeams(){
         <span class="ctitle">Teams</span>
         <span class="tmpick"><span class="swatch" style="background:var(--s${me.slot})"></span>
           <select id="tmOwner" aria-label="Show teams for">${sel}</select></span>
-        <span class="cnote">${tot} pts off the ${esc(poll.label)} poll
+        <span class="cnote">${tot} pts off the ${esc(poll.label)} poll${
+          CUR > 0 ? ` &middot; change vs ${esc(POLLS[CUR-1].label)}` : ''}
           &middot; ${TEAMMETA ? 'click a column to sort' : 'loading schedules&hellip;'}</span>
       </div>
       <div class="tblwrap"><table>
