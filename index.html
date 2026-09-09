@@ -514,7 +514,7 @@ function drawStandings(rows, prev, poll){
       : '<span class="delta">&ndash;</span>';
     const picks = r.teams.map(t => {
       const badge = t.kind === 'ranked' ? `<span class="prank">${t.rank}</span>`
-                  : t.kind === 'rv'     ? `<span class="prank rv">RV${t.rvPlace}</span>`
+                  : t.kind === 'rv'     ? `<span class="prank rv">ARV</span>`
                   : `<span class="prank none">&mdash;</span>`;
       return `<div class="pick${t.pts ? '' : ' zero'}">${badge}
                 <span class="pteam">${esc(tname(t.id))}</span>
@@ -790,7 +790,7 @@ function drawBoard(poll, rows){
 
   const top25 = poll.ranks.map(r => line(r.rank, r.id, pointsForRank(r.rank))).join('');
   const rv = poll.others.slice(0, 8).map((o,i) =>
-    line(i < RV_SLOTS ? 'RV' + (i+1) : '&mdash;', o.id, i < RV_SLOTS ? RV_BONUS : 0)).join('');
+    line(i < RV_SLOTS ? 'ARV' : '&mdash;', o.id, i < RV_SLOTS ? RV_BONUS : 0)).join('');
 
   const scoring = new Set([...poll.ranks.map(r => r.id), ...poll.others.slice(0,RV_SLOTS).map(o => o.id)]);
   const unpicked = poll.ranks.filter(r => !owner[r.id]);
@@ -918,7 +918,7 @@ function analyze(g, sm){
 }
 
 const plural = n => n === 1 ? '' : 's';
-function rankTag(s){ return s.rank ? 'No. ' + s.rank : s.rv ? 'RV' + s.rv : 'unranked'; }
+function rankTag(s){ return s.rank ? 'No. ' + s.rank : s.rv ? 'ARV' : 'unranked'; }
 
 function favorite(g, a){
   if(!g.line) return null;
@@ -1239,7 +1239,7 @@ function drawMatchups(){
     const row = s => {
       const lost = done && !s.winner;
       return `<div class="mut${s.owner ? ' own' : ''}${lost ? ' lost' : ''}">
-        <span class="mursk">${s.rank ? 'No.' + s.rank : s.rv ? 'RV' + s.rv : ''}</span>
+        <span class="mursk">${s.rank ? 'No.' + s.rank : s.rv ? 'ARV' : ''}</span>
         <span class="muname">${esc(s.name)}</span>
         ${s.rec && s.rec !== '0-0' ? `<span class="murec">${esc(s.rec)}</span>` : ''}
         ${s.owner
@@ -1497,7 +1497,7 @@ function drawTeams(){
   const wait = '<span class="tmwait">&middot;&middot;&middot;</span>';
   const body = rows.map(r => {
     const m = r.meta;
-    const ap = r.rank ? r.rank : r.rv ? 'RV' + r.rv : '<span class="tmdash">&mdash;</span>';
+    const ap = r.rank ? r.rank : r.rv ? 'ARV' : '<span class="tmdash">&mdash;</span>';
     const chg = r.chg == null ? '<span class="tmdash">&mdash;</span>'
       : r.chg > 0 ? `<span class="delta up">&#9650; ${r.chg}</span>`
       : r.chg < 0 ? `<span class="delta dn">&#9660; ${-r.chg}</span>`

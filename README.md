@@ -355,6 +355,9 @@ That builds the email and uploads the artifact but skips the send step.
 | No. 25 | 2 |
 | Top 3 receiving votes | 2 |
 
+Teams outside the top 25 that are receiving votes show as **ARV**; the top 3 of
+those score 2 points, the rest score nothing.
+
 A player's score is the sum of all 6 of their teams in the selected poll.
 Poll ties (two teams sharing No. 14) score by the rank shown. "Others receiving
 votes" uses a strict top-3 cutoff in ESPN's listed order.

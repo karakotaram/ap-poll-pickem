@@ -193,7 +193,7 @@ const games = (sb.events || []).map(e => {
   .sort((a,b) => b.impact - a.impact)
   .slice(0, N_GAMES);
 
-const rankTag = s => s.rank ? `No. ${s.rank} ` : s.rv ? `RV${s.rv} ` : '';
+const rankTag = s => s.rank ? `No. ${s.rank} ` : s.rv ? `ARV ` : '';
 // the email has no colour swatches to lean on, so name the owner inline
 const teamLabel = s => `${rankTag(s)}${s.name}${s.owner ? ` (${s.owner})` : ''}`;
 const kickText = g => {
@@ -224,16 +224,19 @@ function whyText(g) {
 const P = '#111', MUT = '#6b7280', LINE = '#e5e7eb', BG = '#ffffff', ALT = '#f9fafb';
 const GOOD = '#15803d', BAD = '#b91c1c';
 
-const moveCell = name => {
+const chgCell = name => {
   if (!WAS) return `<span style="color:${MUT}">&mdash;</span>`;
   const d = playerDelta(name);
+  return d > 0 ? `<span style="color:${GOOD}">+${d}</span>`
+       : d < 0 ? `<span style="color:${BAD}">${d}</span>`
+       : `<span style="color:${MUT}">0</span>`;
+};
+const moveCell = name => {
+  if (!WAS) return `<span style="color:${MUT}">&mdash;</span>`;
   const pm = wasBy[name].place - NOW.find(r => r.name === name).place;
-  const pts = d > 0 ? `<span style="color:${GOOD}">+${d}</span>`
-            : d < 0 ? `<span style="color:${BAD}">${d}</span>`
-            : `<span style="color:${MUT}">0</span>`;
-  const place = pm > 0 ? `<span style="color:${GOOD}"> &#9650;${pm}</span>`
-              : pm < 0 ? `<span style="color:${BAD}"> &#9660;${-pm}</span>` : '';
-  return pts + place;
+  return pm > 0 ? `<span style="color:${GOOD}">&#9650; ${pm}</span>`
+       : pm < 0 ? `<span style="color:${BAD}">&#9660; ${-pm}</span>`
+       : `<span style="color:${MUT}">&ndash;</span>`;
 };
 
 const rows = NOW.map((r,i) => `
@@ -241,6 +244,7 @@ const rows = NOW.map((r,i) => `
     <td style="padding:9px 12px;color:${MUT};font-variant-numeric:tabular-nums">${r.place}</td>
     <td style="padding:9px 12px;font-weight:600">${esc(r.name)}</td>
     <td style="padding:9px 12px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${r.points}</td>
+    <td style="padding:9px 12px;text-align:right;font-variant-numeric:tabular-nums">${chgCell(r.name)}</td>
     <td style="padding:9px 12px;text-align:right;font-variant-numeric:tabular-nums">${moveCell(r.name)}</td>
   </tr>`).join('');
 
@@ -279,12 +283,13 @@ const body = `
         <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:${MUT};border-bottom:1px solid ${LINE}">Player</th>
         <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:${MUT};border-bottom:1px solid ${LINE}">Pts</th>
         <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:${MUT};border-bottom:1px solid ${LINE}">Chg</th>
+        <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:${MUT};border-bottom:1px solid ${LINE}">Move</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
   <div style="font-size:11.5px;color:${MUT};margin:7px 0 22px">
-    Chg is points against the ${prev ? esc(prev.label) : 'previous'} poll; the arrow is places moved.
+    Chg is points against the ${prev ? esc(prev.label) : 'previous'} poll. Move is places gained or lost.
   </div>
 
   <h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:${MUT};margin:0 0 9px">What moved</h2>
@@ -318,7 +323,8 @@ const plain = s => s.replace(/<[^>]+>/g, '').replace(/&mdash;/g,'—').replace(/
 console.log(`subject: ${subject}`);
 console.log(`poll: ${poll.label}${prev ? `  (change vs ${prev.label})` : '  (first poll of the season)'}`);
 console.log(`\nstandings:`);
-NOW.forEach(r => console.log(`  ${String(r.place).padStart(2)}. ${r.name.padEnd(7)} ${String(r.points).padStart(3)}  ${plain(moveCell(r.name))}`));
+NOW.forEach(r => console.log(`  ${String(r.place).padStart(2)}. ${r.name.padEnd(7)} ${String(r.points).padStart(3)}` +
+  `  ${plain(chgCell(r.name)).padStart(3)}  ${plain(moveCell(r.name))}`));
 console.log(`\nwhat moved:\n  ${plain(changeText())}`);
 console.log(`\ngames (${games.length}):`);
 games.forEach(g => {
