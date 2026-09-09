@@ -319,6 +319,29 @@ Notes:
   useless. Run it after the new poll lands and after the ESPN week rolls over
   (Mondays around 3am ET) so "next week" means the upcoming slate.
 
+### Sending
+
+`.github/workflows/weekly-email.yml` runs it Mondays at 13:00 UTC (9am ET in
+season, 8am once the clocks go back) and sends over Gmail SMTP. Every run
+uploads the built `email.html` as an artifact, so what went out can be read
+back rather than guessed at.
+
+Three secrets, all set by you — the app password never passes through anything
+else:
+
+    gh secret set MAIL_USERNAME    # the Gmail address it sends from
+    gh secret set MAIL_PASSWORD    # a Google *app password*, not the account password
+    gh secret set MAIL_TO          # comma-separated recipients
+
+**`MAIL_TO` is a secret on purpose.** This repo is public, and a committed list
+of eight people's addresses is a list anyone can scrape.
+
+Test without mailing anyone:
+
+    gh workflow run "Weekly pool email" -f dry_run=true
+
+That builds the email and uploads the artifact but skips the send step.
+
 ## Scoring
 
 | AP rank | Points |

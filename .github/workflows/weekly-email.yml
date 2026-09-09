@@ -1,0 +1,62 @@
+name: Weekly pool email
+
+# Monday morning: the new AP poll has landed and ESPN's week has already rolled
+# over (~3am ET), so "next week" resolves to the upcoming slate rather than the
+# weekend just played. Cron is UTC and has no timezone support, so this is 9am
+# ET during the season and 8am ET once the clocks go back in November.
+on:
+  schedule:
+    - cron: '0 13 * * 1'    # Mon 13:00 UTC = 9am ET (EDT)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build the email and upload it, but send nothing'
+        type: boolean
+        default: false
+
+concurrency:
+  group: weekly-email
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build the email
+        id: build
+        run: |
+          node scripts/weekly-email.mjs
+          echo "subject=$(cat email-subject.txt)" >> "$GITHUB_OUTPUT"
+
+      # Always keep a copy of exactly what was built, so a bad send can be
+      # inspected after the fact rather than guessed at.
+      - name: Upload a copy
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-email
+          path: |
+            email.html
+            email-subject.txt
+          retention-days: 30
+
+      - name: Send
+        if: ${{ !inputs.dry_run }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          from: AP Poll Pick'em <${{ secrets.MAIL_USERNAME }}>
+          # Recipients live in a secret, not in this file: the repo is public.
+          to: ${{ secrets.MAIL_TO }}
+          subject: ${{ steps.build.outputs.subject }}
+          html_body: file://email.html
+          convert_markdown: false

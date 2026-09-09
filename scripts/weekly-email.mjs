@@ -256,7 +256,11 @@ const gameBlocks = games.length ? games.map(g => `
   </div>`).join('')
   : `<p style="color:${MUT}">No pool-relevant games on the board yet.</p>`;
 
-const subject = `AP Poll Pick'em — ${poll.label}: ${NOW[0].name} leads on ${NOW[0].points}`;
+const leaders = NOW.filter(r => r.place === 1);
+const subject = `AP Poll Pick'em - ${poll.label}: ` +
+  (leaders.length > 1
+    ? `${leaders.map(r => r.name).join(' & ')} tied on ${leaders[0].points}`
+    : `${leaders[0].name} leads on ${leaders[0].points}`);
 
 const body = `
 <div style="margin:0;padding:24px 12px;background:${ALT};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:${P}">
