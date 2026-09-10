@@ -183,6 +183,7 @@ const games = (sb.events || []).map(e => {
   const upset = owned.some(s => !s.points) && [away, home].some(s => s.rank) ? 8 * vol : 0;
   return {
     impact: atRisk * vol * (h2h ? 1.8 : 1) + upset,
+    id: String(e.id || ''),
     away, home, owned, h2h, atRisk,
     kickoff: e.date, timeValid: c.timeValid !== false,
     line: od.details || null, tv: c.broadcasts?.[0]?.names?.[0] || null,
@@ -204,7 +205,35 @@ const kickText = g => {
   return d.toLocaleString('en-US', { ...opt, hour:'numeric', minute:'2-digit' }) + ' ET';
 };
 
-/* Why this game matters, in one line — same shape as the site's preview. */
+/* The site's column, reused verbatim so the email and the page never say two
+   different things about the same game. Same freshness rules the page applies:
+   written for the week on screen, and under 8 days old. Falls back per game to
+   the built-in line, so a rejected blurb costs the email nothing. */
+let COLUMN = null;
+try {
+  const c = JSON.parse(await readFile(new URL('../commentary.json', import.meta.url), 'utf8'));
+  const ageDays = (Date.now() - new Date(c.generated).getTime()) / 864e5;
+  if (c && c.games && typeof c.games === 'object' && ageDays >= 0 && ageDays < 8) COLUMN = c;
+} catch { /* no column today; the built-in line covers it */ }
+const columnUsable = () => !!(COLUMN && (week == null || COLUMN.week === week));
+
+/* Model text is escaped first, then typographic characters become entities —
+   the body is required to be ASCII and a stray curly apostrophe would other-
+   wise fail the build. Only known roster names are re-emphasised afterwards,
+   so nothing the model writes can inject markup. */
+function columnHtml(text) {
+  let h = esc(String(text))
+    .replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+    .replace(/\u2014/g, '&mdash;').replace(/\u2013/g, '&ndash;')
+    .replace(/\u2026/g, '...').replace(/\u00a0/g, ' ');
+  ROSTER.forEach(p => {
+    const n = p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    h = h.replace(new RegExp('(^|[^A-Za-z<])(' + n + ')\\b', 'g'), '$1<b>$2</b>');
+  });
+  return h;
+}
+
+/* Why this game matters, in one line — the fallback when no blurb survived. */
 function whyText(g) {
   const byRisk = g.owned.slice().sort((a,b) => b.points - a.points);
   if (g.h2h) {
@@ -256,7 +285,8 @@ const gameBlocks = games.length ? games.map(g => `
     <div style="font-size:12.5px;color:${MUT};margin:4px 0 7px">
       ${esc(kickText(g))}${g.tv ? ' &middot; ' + esc(g.tv) : ''}${g.line ? ' &middot; ' + esc(g.line) : ''}
     </div>
-    <div style="font-size:13.5px;color:#374151;line-height:1.5">${whyText(g)}</div>
+    <div style="font-size:13.5px;color:#374151;line-height:1.5">${
+      (columnUsable() && COLUMN.games[g.id]) ? columnHtml(COLUMN.games[g.id]) : whyText(g)}</div>
   </div>`).join('')
   : `<p style="color:${MUT}">No pool-relevant games on the board yet.</p>`;
 
@@ -329,6 +359,7 @@ console.log(`\nwhat moved:\n  ${plain(changeText())}`);
 console.log(`\ngames (${games.length}):`);
 games.forEach(g => {
   console.log(`  ${teamLabel(g.away)} at ${teamLabel(g.home)}  —  ${kickText(g)}${g.line ? ' · ' + g.line : ''}`);
-  console.log(`    ${plain(whyText(g))}`);
+  const b = (columnUsable() && COLUMN.games[g.id]) ? COLUMN.games[g.id] : null;
+  console.log(`    ${b ? '[column] ' : '[built-in] '}${plain(b ? columnHtml(b) : whyText(g))}`);
 });
 console.log(`\nwrote email.html (${body.length} bytes)${DRY_RUN ? ' — DRY_RUN, nothing sent' : ''}`);

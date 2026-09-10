@@ -105,8 +105,6 @@ select:hover,.btn:hover{background:var(--surface-2)}
 .mumeta{font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:5px 9px;
         border-top:1px solid var(--grid);padding-top:9px}
 .mumeta b{color:var(--ink-2);font-weight:640}
-.muctx{font-size:12px;line-height:1.5;color:var(--muted);margin:0 0 9px;
-  padding-bottom:9px;border-bottom:1px solid var(--grid)}
 .mubody{font-size:13px;line-height:1.55;color:var(--ink-2)}
 .mubody em{color:var(--ink);font-style:normal;font-weight:600}
 
@@ -387,7 +385,7 @@ async function fetchSlot(t, w){
 
 // Bump SCHEMA whenever the cached object shape changes, so a deploy can't leave
 // users rendering stale data that's missing newly-added fields.
-const SCHEMA = 'v3';
+const SCHEMA = 'v4';
 const CACHE_KEY = `appickem:${SCHEMA}:${SEASON}`;
 const CACHE_TTL = 30 * 60 * 1000;   // 30 min
 
@@ -929,108 +927,6 @@ function favorite(g, a){
   return {side, name: side ? side.name : m[1].trim(), by: +m[2]};
 }
 
-/* ==================================================================
-   Game context — a couple of sentences about the football, pulled from
-   ESPN's per-event summary. Structured fields only: win probability and
-   statistical leaders. Nothing is copied from anyone's article, and the
-   articles ESPN attaches to a game are usually about other games anyway.
-   ================================================================== */
-const SUM_URL = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=';
-let CONTEXT = {};            // eventId -> distilled facts, or null once fetched and empty
-let CTX_BUSY = false;
-
-const tdIn = s => { const m = /(\d+)\s*TD/i.exec(s || ''); return m ? +m[1] : 0; };
-
-function distillSummary(d){
-  const out = {win:null, pass:[], star:null};
-
-  const p = d.predictor;
-  if(p && p.homeTeam && p.awayTeam){
-    const hp = parseFloat(p.homeTeam.gameProjection), ap = parseFloat(p.awayTeam.gameProjection);
-    if(!isNaN(hp) && !isNaN(ap)){
-      const top = hp >= ap ? p.homeTeam : p.awayTeam;
-      out.win = {id:String(top.id), pct:Math.round(Math.max(hp, ap))};
-    }
-  }
-
-  (d.leaders || []).forEach(t => {
-    const tid = String((t.team || {}).id || '');
-    const pick = n => {
-      const c = (t.leaders || []).find(x => x.name === n);
-      const L = c && (c.leaders || [])[0];
-      return (L && L.athlete) ? L : null;
-    };
-    const pass = pick('passingYards');
-    if(pass) out.pass.push({tid, who:pass.athlete.displayName,
-                            yds:Math.round(pass.value || 0), td:tdIn(pass.displayValue)});
-    [['receivingYards','receiver'], ['rushingYards','rusher']].forEach(([n, role]) => {
-      const L = pick(n);
-      if(!L) return;
-      const yds = Math.round(L.value || 0);
-      if(!out.star || yds > out.star.yds)
-        out.star = {tid, role, who:L.athlete.displayName, yds, td:tdIn(L.displayValue)};
-    });
-  });
-  return out;
-}
-
-/* Only the three cards on screen are fetched, and only once each. */
-let CTX_READ = false;
-function ensureContext(ids){
-  if(!CTX_READ){                                   // hydrate before deciding what's missing
-    CTX_READ = true;
-    try{
-      const c = JSON.parse(localStorage.getItem(`appickem:${SCHEMA}:ctx`) || 'null');
-      if(c && Date.now() - c.at < 15*60*1000) CONTEXT = c.c || {};
-    }catch(e){}
-  }
-  const missing = ids.filter(id => !(id in CONTEXT));
-  if(!missing.length || CTX_BUSY) return;
-  CTX_BUSY = true;
-  Promise.all(missing.map(async id => {
-    try{
-      const r = await fetch(SUM_URL + id, {cache:'no-store'});
-      CONTEXT[id] = r.ok ? distillSummary(await r.json()) : null;
-    }catch(e){ CONTEXT[id] = null; }
-  })).then(() => {
-    CTX_BUSY = false;
-    try{ localStorage.setItem(`appickem:${SCHEMA}:ctx`,
-           JSON.stringify({at:Date.now(), c:CONTEXT})); }catch(e){}
-    drawMatchups();
-  });
-}
-
-function contextText(g, c){
-  if(!c) return '';
-  const out = [];
-
-  if(c.win){
-    const s = [g.away, g.home].find(t => String(t.id) === c.win.id);
-    if(s) out.push(c.win.pct >= 55
-      ? `ESPN’s matchup predictor makes ${esc(s.name)} a ${c.win.pct}% pick.`
-      : `ESPN’s matchup predictor barely separates them, ${c.win.pct}&ndash;${100 - c.win.pct} ${esc(s.name)}.`);
-  }
-
-  // name the team with the player: "Julian Sayin" alone doesn't say which side
-  const who = p => `${esc(tname(p.tid))}’s ${esc(p.who)}`;
-  if(c.pass.length === 2){
-    const [x, y] = c.pass;
-    out.push(`${who(x)} has ${x.yds} passing yards and ${x.td} touchdown${plural(x.td)} this season; `
-           + `${who(y)}, ${y.yds} and ${y.td}.`);
-  }else if(c.pass.length === 1){
-    const x = c.pass[0];
-    out.push(`${who(x)} has ${x.yds} passing yards and ${x.td} touchdown${plural(x.td)} this season.`);
-  }
-
-  // no superlative here on purpose: the leading passer usually out-gains the
-  // leading receiver, so "most in the game" would be wrong.
-  if(c.star)
-    out.push(`${who(c.star)} has ${c.star.yds} ${c.star.role === 'receiver' ? 'receiving' : 'rushing'} `
-           + `yards${c.star.td ? ` and ${c.star.td} touchdown${plural(c.star.td)}` : ''}.`);
-
-  return out.join(' ');
-}
-
 /* What one tier of slippage actually subtracts. No. 25 is excluded: below it
    sits "receiving votes", which still pays the same 2, so there is no honest
    delta to quote. */
@@ -1041,7 +937,7 @@ const slipCost = s => (s.rank && s.rank < 25) ? s.pts - nextDownPts(s.rank) : 0;
    so the text does not repeat them — it names the SHAPE of the exposure, what
    the board thinks, and what a slip costs as a number. Every clause fires only
    when it has something to add, so two previews rarely share a skeleton.
-   Points come from AP position: an upset costs the favourite's owner, it never
+   Points come from AP position: an upset costs the favorite's owner, it never
    pays the underdog's. */
 function previewText(g, a, ctx){
   const out = [];
@@ -1257,7 +1153,6 @@ function drawMatchups(){
   const maxRisk = Math.max(...ranked.map(m => m.a.atRisk));
   // Only trust the column if it was written for the week now on screen.
   const usableColumn = !!(COLUMN && (GAMES.week == null || COLUMN.week === GAMES.week));
-  ensureContext(top.filter(m => m.g.state !== 'post').map(m => m.g.id));
 
   const cards = top.map((m, i) => {
     const {g, a} = m;
@@ -1292,7 +1187,6 @@ function drawMatchups(){
 
     // Finished games always get the factual result line — the column was
     // written before kickoff and would be describing a game that's over.
-    const ctx = done ? '' : contextText(g, CONTEXT[g.id]);
     // Finished games always get the factual result line — the column was
     // written before kickoff and would be describing a game that's over.
     const col = (!done && usableColumn && COLUMN.games[g.id]) ? COLUMN.games[g.id] : null;
@@ -1305,7 +1199,6 @@ function drawMatchups(){
         <span class="muwhen">${esc(whenText(g))}</span></div>
       <div class="muteams">${row(a.sides[0])}${row(a.sides[1])}</div>
       ${meta.length ? `<div class="mumeta">${meta.join('<span style="opacity:.4">·</span>')}</div>` : ''}
-      ${ctx ? `<p class="muctx">${ctx}</p>` : ''}
       <p class="mubody">${body}</p>
     </div>`;
   }).join('');
@@ -1482,7 +1375,7 @@ function teamRows(poll){
   });
 }
 
-/* The line, flipped to the drafted team's side: negative means they're favoured.
+/* The line, flipped to the drafted team's side: negative means they're favored.
    ESPN quotes `spread` from the home team, so an away team's number inverts. */
 function lineFor(g){
   const o = (ODDS && g) ? ODDS[g.id] : null;

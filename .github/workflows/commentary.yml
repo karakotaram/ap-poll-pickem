@@ -1,10 +1,11 @@
 name: Generate matchup commentary
 
-# Monday after the new AP poll has settled (and after the weekly email has
-# gone out at 13:00), and Friday once the lines have firmed up.
+# Monday once the new AP poll has settled, and Friday once the lines have
+# firmed up. Monday runs BEFORE the weekly email (14:00) on purpose: the email
+# reuses this column, and a column written for last week's slate is discarded.
 on:
   schedule:
-    - cron: '0 14 * * 1'   # Mon 14:00 UTC = 10am ET
+    - cron: '0 13 * * 1'   # Mon 13:00 UTC = 9am ET
     - cron: '0 15 * * 5'   # Fri 15:00 UTC = 11am ET
   workflow_dispatch:        # manual run from the Actions tab
     inputs:

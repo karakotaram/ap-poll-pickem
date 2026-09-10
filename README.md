@@ -101,30 +101,6 @@ otherwise. Owning both sides of a game is only called a wash when both teams
 actually score — if the winner is unranked the win banks nothing, and saying
 otherwise inverts the owner's exposure.
 
-## Game context
-
-Each upcoming matchup card opens with two or three sentences about the football
-itself, above the pool read and separated from it. They come from ESPN's
-per-event summary endpoint (no key, CORS-open, three requests — one per card on
-screen — cached 15 minutes):
-
-    https://site.api.espn.com/apis/site/v2/sports/football/
-      college-football/summary?event=<id>
-
-Only structured fields are used: the matchup predictor's win probability and the
-per-team statistical leaders. The sentences are assembled in code, so nothing is
-copied and nothing is invented.
-
-Two things ruled out the obvious alternative of pulling prose from a web search
-or from ESPN's own article text. Republishing somebody's sentences on a public
-page is copying their work, and the articles ESPN attaches to a game are usually
-about other games — the ones hanging off Ohio State–Texas were about Florida
-State and an SEC lawsuit.
-
-No superlative is attached to the leading receiver or rusher on purpose: the
-leading passer normally out-gains both, so "most yards in the game" would be
-wrong.
-
 ## The column (Anthropic)
 
 The preview under each upcoming matchup is written by **Claude Opus 5**
@@ -153,6 +129,11 @@ secrets and is only ever read inside CI.
 Prints the model, the system prompt and the exact facts payload. Override the
 model with `ANTHROPIC_MODEL=...`.
 
+The same column is reused in the weekly email, so the page and the email never
+say two different things about the same game. The commentary job runs an hour
+before the email on Mondays for that reason — a column written for last week's
+slate is discarded rather than shown.
+
 ### Notes on the Anthropic port
 
 - **Structured outputs** (`output_config.format` with a Zod schema, via
@@ -165,6 +146,11 @@ model with `ANTHROPIC_MODEL=...`.
   temperature 0.
 - **Thinking is on by default** on Opus 5, so it is not configured explicitly.
 - Both calls report their token usage to the CI log, so cost is visible per run.
+- **American spelling is enforced mechanically**, not just requested. The old
+  prompt was itself written in British English, which is where "favoured" came
+  from. Unlike every other check this one *corrects* rather than rejects —
+  respelling a word cannot change what a sentence claims, and discarding an
+  accurate blurb over one letter is a bad trade. Substitutions are logged.
 
 
 ### Guardrails
@@ -285,7 +271,7 @@ Lines are not on the schedule endpoint, so they come from the weekly scoreboard
 — one request per distinct week the next games fall in, which is normally one.
 
 ESPN quotes `spread` from the **home team's** side: negative means the home team
-is favoured. The table flips it to the drafted team's side, so `-7.5` always
+is favored. The table flips it to the drafted team's side, so `-7.5` always
 means *this* team is laying 7.5 and `+7.5` means they're getting it. Verified
 against ESPN's own `details` string on all 55 games with a posted line.
 

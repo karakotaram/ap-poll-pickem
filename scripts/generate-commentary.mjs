@@ -176,7 +176,7 @@ THE POOL: ${ROSTER.map(p => p.name).join(', ')}. Each drafted six teams before t
 
 THE SPREAD HAS NOTHING TO DO WITH POINTS. Pool points come from AP poll position. Covering a spread earns nobody anything; failing to cover costs nobody anything. The line is only evidence about how good a team is. Never write that a margin, a cover, or a blowout wins or loses pool points.
 
-WHAT THE LINE MEANS — a line like "ND -20.5" means Notre Dame is FAVOURED and must win by more than 20.5. The favourite is never "facing a hole", "in a deficit", "an underdog", or "climbing back"; that is the other team's position. A favourite can only "fail to cover", "blow a cushion", or "win without covering". Get this backwards and the blurb is thrown away.
+WHAT THE LINE MEANS — a line like "ND -20.5" means Notre Dame is FAVORED and must win by more than 20.5. The favorite is never "facing a hole", "in a deficit", "an underdog", or "climbing back"; that is the other team's position. A favorite can only "fail to cover", "blow a cushion", or "win without covering". Get this backwards and the blurb is thrown away.
 
 HOW SCORING ACTUALLY WORKS — you have been getting this wrong. Points come from where a team sits in the AP poll, NOT from winning a game. Winning a game adds nothing; it defends a team's existing ranking. Losing subtracts nothing directly; it risks the team sliding in next week's poll, and the slide is where points are lost. So never write that someone "gains 15 points" by covering, or "collects" points by winning. The correct framing is exposure: the owner of a highly ranked team has points to LOSE, and the owner of an unranked team has nothing to lose and something to gain only if their team climbs into the poll.
 
@@ -191,14 +191,16 @@ Never name the TV network or the stadium unless it is the actual joke.
 
 VOICE: a beat writer who has covered this pool for years and is not especially impressed by any of it. Plain declarative sentences. Understated and precise. State what is actually at stake and let it land on its own. The dryness comes from restraint, not from jokes.
 
-WRITE PLAINLY — THIS IS THE MOST IMPORTANT INSTRUCTION. Use no idioms, no set phrases, no slang, no wordplay, no metaphors, no team nicknames. Specifically avoid: "house money", "rolls the dice", "hanging by a thread", "coin flip", "moat", "juggernaut", "cushion", "on the line", "grab", "haul", "payday". If a colourful phrase occurs to you, write the plain version of it instead. A flat accurate sentence is always better than a vivid one you get slightly wrong.
+AMERICAN ENGLISH. Write "favored", not "favoured"; "defense", not "defence". This is an American college football pool.
+
+WRITE PLAINLY — THIS IS THE MOST IMPORTANT INSTRUCTION. Use no idioms, no set phrases, no slang, no wordplay, no metaphors, no team nicknames. Specifically avoid: "house money", "rolls the dice", "hanging by a thread", "coin flip", "moat", "juggernaut", "cushion", "on the line", "grab", "haul", "payday". If a colorful phrase occurs to you, write the plain version of it instead. A flat accurate sentence is always better than a vivid one you get slightly wrong.
 
 BANNED: hype cliches ("all eyes on", "must-win", "buckle up", "for the ages"), exclamation marks, emoji, rhetorical questions, and opening two blurbs the same way.
 
 STYLE SAMPLES — match this register, never reuse the content:
 - "Ty has fifteen points in this game and Murph has three. The six-and-a-half point line suggests that gap is about right, which leaves Ty with far more to protect than Murph has to gain."
-- "The market makes SMU a narrow favourite on the road. Jim has five points that depend on that judgement being correct, and Merc has nothing at risk either way."
-- "Notre Dame is favoured by twenty and a half. Mike owns twenty points in a game his team is expected to win comfortably, so the only real interest is in what happens if it does not."
+- "The market makes SMU a narrow favorite on the road. Jim has five points that depend on that judgement being correct, and Merc has nothing at risk either way."
+- "Notre Dame is favored by twenty and a half. Mike owns twenty points in a game his team is expected to win comfortably, so the only real interest is in what happens if it does not."
 
 HARD RULES:
 - Use ONLY the facts in the JSON provided. You have no other knowledge of these teams.
@@ -267,6 +269,38 @@ if (DRY_RUN) {
   process.exit(0);
 }
 
+/* American spelling. The prompt asks for it, but asking is not a guarantee —
+   the previous prompt was itself written in British English, which is where
+   "favoured" came from in the first place. Unlike every other check here this
+   one CORRECTS rather than rejects: respelling a word cannot change what the
+   sentence claims, and throwing away an accurate blurb over one letter is a
+   bad trade. Every substitution is logged. */
+const BRITISH = [
+  ['favour', 'favor'], ['colour', 'color'], ['honour', 'honor'],
+  ['behaviour', 'behavior'], ['neighbour', 'neighbor'], ['rumour', 'rumor'],
+  ['labour', 'labor'], ['defence', 'defense'], ['offence', 'offense'],
+  ['pretence', 'pretense'], ['licence', 'license'], ['practise', 'practice'],
+  ['analyse', 'analyze'], ['realise', 'realize'], ['recognise', 'recognize'],
+  ['apologise', 'apologize'], ['organise', 'organize'], ['emphasise', 'emphasize'],
+  ['metre', 'meter'], ['litre', 'liter'], ['centre', 'center'], ['theatre', 'theater'],
+  ['programme', 'program'], ['grey', 'gray'], ['sceptic', 'skeptic'],
+  ['manoeuvre', 'maneuver'], ['travelled', 'traveled'], ['travelling', 'traveling'],
+  ['cancelled', 'canceled'], ['modelled', 'modeled'], ['marvellous', 'marvelous'],
+  ['whilst', 'while'], ['amongst', 'among'], ['learnt', 'learned'], ['spelt', 'spelled'],
+];
+
+function americanize(text) {
+  let out = text;
+  const hits = [];
+  for (const [uk, us] of BRITISH) {
+    const next = out.replace(new RegExp(uk, 'gi'),
+      m => (m[0] === m[0].toUpperCase() ? us[0].toUpperCase() + us.slice(1) : us));
+    if (next !== out) hits.push(uk);
+    out = next;
+  }
+  return { text: out, hits };
+}
+
 /* ---------- verification ----------
    The prompt asks the model not to invent things; this checks that it didn't.
    A blurb that fails is dropped and the page falls back to its own text. */
@@ -321,13 +355,13 @@ const BANNED = ['swing the pool', 'rewrite the leaderboard', 'leaderboard', 'poo
   'collects the pot', 'buckle up', 'must-win', 'all eyes on', 'for the ages',
   'will win', 'should win', 'cannot lose', "can't lose"];
 
-/* Favourite/underdog inversion: "Notre Dame collapses under a 20.5-point hole"
+/* Favorite/underdog inversion: "Notre Dame collapses under a 20.5-point hole"
    when Notre Dame is LAYING 20.5. The number is real, so the numeric check
    passes — only the direction is wrong. */
 const DOG_LANG = /\b(hole|deficit|underdog|upset|long ?shot|climb|comeback|trailing|trails)\b/i;
 const FAV_LANG = /\b(favou?red|favou?rite|laying|giving)\b/i;
 
-function favouriteSide(facts) {
+function favoriteSide(facts) {
   const m = /^\s*([A-Za-z&.'\- ]+?)\s*-\s*[\d.]+\s*$/.exec(facts.line || '');
   if (!m) return null;
   const ab = m[1].trim().toUpperCase();
@@ -343,15 +377,15 @@ function mentions(sentence, side) {
 }
 
 function directionProblem(blurb, facts) {
-  const sides = favouriteSide(facts);
+  const sides = favoriteSide(facts);
   if (!sides) return null;
   for (const sentence of blurb.split(/(?<=[.!?])\s+/)) {
     const hasFav = mentions(sentence, sides.fav), hasDog = mentions(sentence, sides.dog);
     // Only judge sentences about one team; a sentence naming both is ambiguous.
     if (hasFav && !hasDog && DOG_LANG.test(sentence))
-      return `describes the favourite (${sides.fav.name}) in underdog terms`;
+      return `describes the favorite (${sides.fav.name}) in underdog terms`;
     if (hasDog && !hasFav && FAV_LANG.test(sentence))
-      return `describes the underdog (${sides.dog.name}) as the favourite`;
+      return `describes the underdog (${sides.dog.name}) as the favorite`;
   }
   return null;
 }
@@ -521,7 +555,7 @@ Mark ok=false if the blurb states anything the facts do not support. Specificall
 - treating a win as earning points or a loss as deducting them. Points come from AP poll position only; a win defends a ranking, a loss risks a slide in next week's poll. "Gains 15 points by covering" is wrong.
 - Whether a team COVERS the spread is irrelevant to everyone in this pool. Never write that an owner is vulnerable, safe, exposed or rewarded because a team did or did not cover. Only the game result and the resulting poll movement matter.
 - tying pool points to the spread or to covering. Points come from AP poll position and change only when the poll updates. "A 20-point draft hangs on a 20.5-point spread" and "anything less than a blowout wipes his stake" are both wrong. Losing the GAME risking a poll slide is fine; covering is irrelevant to points.
-- favourite/underdog inversion: in "ND -20.5" Notre Dame is favoured. Describing the favourite as facing a hole, deficit, or upset climb is wrong.
+- favorite/underdog inversion: in "ND -20.5" Notre Dame is favored. Describing the favorite as facing a hole, deficit, or upset climb is wrong.
 - inverting exposure: the owner of the HIGHER-ranked, higher-point team has more to lose; the owner of a 0-point team is the one risking nothing
 - ANY claim about the pool standings or the overall race (who leads, trails, is ahead, is winning, is collecting the pot) — the writer was not given standings, so any such claim is unsupported
 - treating an outcome as settled or near-certain ("almost a certainty", "no room for surprise", "sits safely")
@@ -557,7 +591,9 @@ try {
       console.error(`ignored ${k}: empty blurb`);
       continue;
     }
-    const blurb = item.blurb.trim().slice(0, 400);
+    const spelled = americanize(item.blurb.trim().slice(0, 400));
+    if (spelled.hits.length) console.error(`respelled ${k}: ${spelled.hits.join(', ')}`);
+    const blurb = spelled.text;
     const problem = validate(blurb, facts);
     if (problem) { console.error(`rejected ${k}: ${problem}\n   ${blurb}`); rejected++; continue; }
     out[String(k)] = blurb;
