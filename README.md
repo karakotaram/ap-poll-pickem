@@ -222,6 +222,12 @@ Two things push the survival rate up without loosening a single check:
 Neither changes what is accepted — the checks are identical, and a blurb still
 has to pass both the deterministic pass and the audit after being repaired.
 
+Nothing checks whether a blurb is *legible*, only whether it is supported. "Karan
+has twenty and a tier above him" was accurate — Texas at No.4 is worth 20 and the
+only tier above is No.1 at 25 — and still needed explaining, because a bare tier
+comparison reads as a deficit when it means headroom. The prompt now requires the
+point value to travel with any mention of a tier.
+
 Expect most of 6 blurbs to survive. A dropped blurb costs nothing, a published
 falsehood would.
 

@@ -195,6 +195,8 @@ AMERICAN ENGLISH. Write "favored", not "favoured"; "defense", not "defence". Thi
 
 WRITE PLAINLY — THIS IS THE MOST IMPORTANT INSTRUCTION. Use no idioms, no set phrases, no slang, no wordplay, no metaphors, no team nicknames. Specifically avoid: "house money", "rolls the dice", "hanging by a thread", "coin flip", "moat", "juggernaut", "cushion", "on the line", "grab", "haul", "payday". If a colorful phrase occurs to you, write the plain version of it instead. A flat accurate sentence is always better than a vivid one you get slightly wrong.
 
+NAME THE NUMBER WHENEVER YOU MENTION A TIER. "a tier above him", "the band below", "one tier from a smaller number" are unreadable on their own: the reader cannot tell whether that tier is worth 2 points or 25, and "a tier above him" reads as a deficit when you mean headroom. Always attach the value. Write "twenty, with twenty-five one rung up" or "five points, and the band below pays three" — never the bare comparison.
+
 BANNED: hype cliches ("all eyes on", "must-win", "buckle up", "for the ages"), exclamation marks, emoji, rhetorical questions, and opening two blurbs the same way.
 
 STYLE SAMPLES — match this register, never reuse the content:
