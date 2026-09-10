@@ -216,7 +216,12 @@ HARD RULES:
 - Do not use the construction "X, while Y" in more than one blurb.
 - Every blurb must open differently from the others.
 
-Return ONLY a JSON object mapping each game id to its blurb string: {"401756789": "..."}.`;
+THESE FIVE MISTAKES GOT BLURBS THROWN AWAY IN RECENT RUNS. Do not repeat them:
+- "nothing he watches this weekend can cost him anything" — you are given ONE game. Never describe what an owner risks or gains in any other game, or across a weekend. Confine every claim to this matchup.
+- "nobody in the pool has any reason to want the upset" — you cannot know what other owners want. Never write about anyone who does not own a team in THIS game.
+- "neither owner gains anything here" — false whenever a ranked team can climb. Only a team already at No.1 has no upside; everyone else can move up a tier.
+- Attaching "exposed", "at risk", "most to lose", "toughest" or "vulnerable" to an owner whose team in this game is worth 0. That owner risks nothing here. Name the owner who actually holds the points instead, and do not use risk words about the other one even to deny them.
+- Using a team's name and its nickname in the same sentence. Pick one and stay with it.`;
 
 const USER =
   `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first.\n\n` +
@@ -575,47 +580,72 @@ Return one verdict per item, carrying that item's id.`;
 }
 
 let out = {};
-try {
-  const parsed = await callClaude(SYSTEM, USER, BlurbSet);
-  const byId = new Map(games.map(g => [g.facts.id, g.facts]));
-  let rejected = 0;
-  for (const item of parsed.games) {
+const byId = new Map(games.map(g => [g.facts.id, g.facts]));
+const failures = new Map();          // id -> why it was thrown away
+
+/* Deterministic checks. A blurb that passes lands in `out`; one that fails
+   records its reason so the repair round can hand that reason back. */
+function ingest(items, label) {
+  for (const item of items.games || []) {
     const k = String(item.id);
     const facts = byId.get(k);
-    if (!facts) {
-      // e.g. the model echoed the example id from the prompt instead of a real one
-      console.error(`ignored unknown game id "${k}" — not in this week's slate`);
-      continue;
-    }
-    if (typeof item.blurb !== 'string' || !item.blurb.trim()) {
-      console.error(`ignored ${k}: empty blurb`);
-      continue;
-    }
+    if (!facts) { console.error(`ignored unknown game id "${k}" — not in this week's slate`); continue; }
+    if (typeof item.blurb !== 'string' || !item.blurb.trim()) { failures.set(k, 'empty blurb'); continue; }
     const spelled = americanize(item.blurb.trim().slice(0, 400));
     if (spelled.hits.length) console.error(`respelled ${k}: ${spelled.hits.join(', ')}`);
-    const blurb = spelled.text;
-    const problem = validate(blurb, facts);
-    if (problem) { console.error(`rejected ${k}: ${problem}\n   ${blurb}`); rejected++; continue; }
-    out[String(k)] = blurb;
+    const problem = validate(spelled.text, facts);
+    if (problem) {
+      console.error(`${label} rejected ${k}: ${problem}\n   ${spelled.text}`);
+      failures.set(k, problem);
+      delete out[k];
+      continue;
+    }
+    failures.delete(k);
+    out[k] = spelled.text;
   }
-  // Second pass: a fresh, cold-temperature call whose only job is to find
-  // claims the facts do not support. Catches semantic errors (inverted
-  // asymmetry, invented standings) that the numeric check cannot see.
-  if (Object.keys(out).length) {
+}
+
+/* Second pass: a fresh call whose only job is to find claims the facts do not
+   support. Catches semantic errors the numeric checks cannot see. */
+async function auditInto(ids) {
+  const subset = Object.fromEntries(ids.filter(i => out[i]).map(i => [i, out[i]]));
+  if (!Object.keys(subset).length) return;
+  const audit = await verify(subset, byId);
+  for (const [id, verdict] of Object.entries(audit)) {
+    if (verdict && verdict.ok === false) {
+      console.error(`audit rejected ${id}: ${verdict.reason}\n   ${out[id]}`);
+      failures.set(id, `fact-check: ${verdict.reason}`);
+      delete out[id];
+    }
+  }
+}
+
+try {
+  ingest(await callClaude(SYSTEM, USER, BlurbSet), 'first pass');
+  await auditInto(Object.keys(out));
+
+  /* Repair round. Every rejection reason is a specific, actionable sentence —
+     handing it straight back is far cheaper than regenerating the slate and
+     recovers most of what a run would otherwise lose. One round only: a blurb
+     that fails twice falls back to the page's own text, which costs nothing. */
+  if (failures.size) {
+    const wanted = [...failures.keys()].filter(id => byId.has(id));
+    console.error(`repairing ${wanted.length}: ${wanted.join(', ')}`);
+    const repairUser =
+      `These blurbs were rejected by the fact-checker. Rewrite ONLY these games, ` +
+      `fixing the stated problem. Everything else in the brief still applies.\n\n` +
+      wanted.map(id => `  ${id} (${byId.get(id).matchup})\n    rejected because: ${failures.get(id)}`).join('\n') +
+      `\n\nFacts for those games:\n` +
+      JSON.stringify(wanted.map(id => byId.get(id)), null, 1);
     try {
-      const audit = await verify(out, byId);
-      for (const [id, verdict] of Object.entries(audit)) {
-        if (verdict && verdict.ok === false) {
-          console.error(`audit rejected ${id}: ${verdict.reason}\n   ${out[id]}`);
-          delete out[id];
-          rejected++;
-        }
-      }
+      ingest(await callClaude(SYSTEM, repairUser, BlurbSet), 'repair');
+      await auditInto(wanted);
     } catch (e) {
-      console.error('audit pass failed, keeping validated blurbs:', e.message);
+      console.error('repair round failed, keeping the first pass:', e.message);
     }
   }
 
+  const rejected = failures.size;
   if (rejected) console.error(`${rejected} blurb(s) rejected; page falls back to built-in text for those`);
   if (!Object.keys(out).length) console.error('every blurb was rejected — publishing an empty set so stale ones are removed');
 } catch (err) {

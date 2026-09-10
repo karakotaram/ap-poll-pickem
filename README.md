@@ -203,8 +203,27 @@ restating anything the card already displays.
   punctuation, not a placeholder). Added after qwen returned `"..."` for all
   six games, which every other check happily passed.
 
-Expect 3-5 of 6 blurbs to survive in a typical run. That is the system working:
-a dropped blurb costs nothing, a published falsehood would.
+### Biasing toward a card that survives
+
+Two things push the survival rate up without loosening a single check:
+
+- **The prompt carries the actual failures.** Five runs of rejection logs turned
+  into five named mistakes with the offending sentence quoted, rather than
+  another abstract rule. The recurring ones were claims that reached beyond the
+  single game supplied, claims about what other owners want, "neither owner
+  gains anything" (false whenever a ranked team can climb), and risk words
+  attached to an owner whose team in that game is worth 0.
+- **A repair round.** Every rejection reason is already a specific, actionable
+  sentence, so it is handed straight back with a request to rewrite only the
+  games that failed. One round only; a blurb that fails twice falls back to the
+  page's own text. Repairing costs a fraction of regenerating the slate, and it
+  runs only when something was rejected.
+
+Neither changes what is accepted — the checks are identical, and a blurb still
+has to pass both the deterministic pass and the audit after being repaired.
+
+Expect most of 6 blurbs to survive. A dropped blurb costs nothing, a published
+falsehood would.
 
 ### Model notes
 
