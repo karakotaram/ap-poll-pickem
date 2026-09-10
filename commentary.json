@@ -1,9 +1,13 @@
 {
-  "generated": "2026-09-08T15:34:06.134Z",
+  "generated": "2026-09-10T01:38:31.980Z",
   "model": "claude-opus-5",
   "season": 2026,
   "week": 2,
-  "poll": "Preseason",
-  "games": {},
-  "note": "cleared on the Anthropic port; repopulated by the next run"
+  "poll": "Week 2",
+  "games": {
+    "401856679": "Chris is the owner doing the explaining if this goes wrong, because Oklahoma is favoured by five and a half on the road and a loss there is how a No.11 ranking begins to slide. Jim's two points come from a team outside the poll, which is little to hold and easy to improve on.",
+    "401856681": "Whatever Jim thought Georgia Tech would be worth in September, it is 0-1 and outside the poll. John's five points sit at No.18, which is not much to protect but is more than his opponent has. Tennessee favoured by twelve and a half is the market's opinion of that difference.",
+    "401856682": "Jim spent a top pick on the No.1 team and the market does not quite agree: Texas is favoured by a point and a half at home. The top of the poll runs in only one direction, so Jim holds the larger risk. Karan sits close enough to the top that a climb is available to him.",
+    "401856810": "Mike has nothing at risk in this one. Murph has ten points that depend on a No.15 ranking holding up, and the market's seven and a half points say the separation is real enough. Arizona's only route to pool value is playing its way into the poll."
+  }
 }
