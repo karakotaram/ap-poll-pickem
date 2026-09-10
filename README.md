@@ -125,42 +125,47 @@ No superlative is attached to the leading receiver or rusher on purpose: the
 leading passer normally out-gains both, so "most yards in the game" would be
 wrong.
 
-## The column (retired, Groq)
+## The column (Anthropic)
 
-**The page no longer reads `commentary.json`.** Matchup cards build their context
-from the structured ESPN fields above instead. The workflow's schedule is
-commented out so it stops spending the API key on a file nobody loads; the
-script and manual `workflow_dispatch` are kept in case it is ever revived, and
-the rest of this section describes it as it was.
+The preview under each upcoming matchup is written by **Claude Opus 5**
+(`claude-opus-5`) at build time, never in the browser. A GitHub Action runs
+`scripts/generate-commentary.mjs` Monday and Friday; it pulls the poll and the
+slate, ranks the games by the impact model above, sends the facts to the
+Anthropic API and commits the prose to `commentary.json`. The page loads that
+file and **falls back to the rule-based preview** whenever it's missing, stale,
+or the blurb for that game failed validation — so a bad run costs nothing.
 
+The ESPN game context sits above the column either way: that part is fact, and
+is not written by a model.
 
-The blurbs are written by an LLM **at build time**, never in the browser. A
-GitHub Action runs `scripts/generate-commentary.mjs` on Tuesdays and Fridays;
-it pulls the poll and the slate, ranks the games by the impact model above,
-sends the facts to Groq, and commits the prose to `commentary.json`. The page
-loads that file and falls back to the built-in rule-based text whenever it's
-missing, stale, or malformed.
-
-**The API key never reaches the browser.** This repo and the site are public —
-a key in client-side JS would be scraped in hours. It lives in GitHub Actions
+**The API key never reaches the browser.** This repo and the site are public — a
+key in client-side JS would be scraped in hours. It lives in GitHub Actions
 secrets and is only ever read inside CI.
 
 ### Setup
 
-    gh secret set GROQ_API_KEY --repo karakotaram/ap-poll-pickem
-
-Paste the key at the prompt (it isn't echoed and won't land in shell history).
-Then trigger the first run:
-
-    gh workflow run "Generate matchup commentary" --repo karakotaram/ap-poll-pickem
+    gh secret set ANTHROPIC_API_KEY --repo karakotaram/ap-poll-pickem
 
 ### Local dry run (no key, no API call)
 
     DRY_RUN=1 node scripts/generate-commentary.mjs
 
-Prints the system prompt and the exact facts payload so you can see what the
-model is given. Override the model with `GROQ_MODEL=...` (default
-`openai/gpt-oss-120b`).
+Prints the model, the system prompt and the exact facts payload. Override the
+model with `ANTHROPIC_MODEL=...`.
+
+### Notes on the Anthropic port
+
+- **Structured outputs** (`output_config.format` with a Zod schema, via
+  `client.messages.parse`) replace JSON mode and the hand-rolled brace scraper
+  the Groq version needed. Blurbs come back as a typed array rather than prose
+  we have to find a JSON object inside.
+- **No temperature.** It is not a parameter on this model family, so the
+  variety that `temperature: 0.85` used to provide now comes entirely from the
+  per-game required opening angles. The audit pass likewise can't be pinned to
+  temperature 0.
+- **Thinking is on by default** on Opus 5, so it is not configured explicitly.
+- Both calls report their token usage to the CI log, so cost is visible per run.
+
 
 ### Guardrails
 
@@ -206,7 +211,7 @@ restating anything the card already displays.
   re-emphasised, so model output cannot inject markup.
 - A blurb is used only if generated for the week on screen and under 8 days old.
 - Finished games always use the factual result line.
-- If Groq fails, the script exits without writing, leaving the last good file.
+- If the API call fails, the script exits without writing, leaving the last good file.
 
 - **Substance** — a blurb must be real prose (>=8 alphabetic words, sentence
   punctuation, not a placeholder). Added after qwen returned `"..."` for all
@@ -217,11 +222,14 @@ a dropped blurb costs nothing, a published falsehood would.
 
 ### Model notes
 
-`openai/gpt-oss-120b` is the default and the only model on this account that
-reliably produces usable blurbs. `qwen/qwen3.6-27b` was tried twice: it 400s on
-JSON mode every time, returns its answer in `reasoning` rather than `content`,
-and emitted placeholder `"..."` text for every game. Avoid `groq/compound` — it
-performs web search, which would break the only-supplied-facts guarantee.
+`claude-opus-5` is the default. The guardrails below are not model-specific and
+stay in place whatever is used — they were written against a weaker model and
+every one of them earned its place by catching something real, so none were
+removed on the port. Whether Opus 5 trips them as often is an open question:
+the honest answer after the switch is that it has not been measured yet.
+
+Do not point this at a model with web search enabled — it would break the
+only-supplied-facts guarantee the whole validation stack rests on.
 
 Trial a model without publishing:
 

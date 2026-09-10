@@ -1211,6 +1211,35 @@ function whenText(g){
                                       hour:'numeric', minute:'2-digit'});
 }
 
+/* Optional LLM column, generated in CI (see scripts/generate-commentary.mjs).
+   The API key lives in GitHub Actions secrets and never reaches the browser.
+   If the file is missing, stale, or malformed we silently keep the built-in text. */
+let COLUMN = null;
+
+async function loadColumn(){
+  try{
+    const r = await fetch('commentary.json?t=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    const d = await r.json();
+    if(!d || !d.games || typeof d.games !== 'object') return;
+    const ageDays = (Date.now() - new Date(d.generated).getTime()) / 864e5;
+    if(!(ageDays >= 0 && ageDays < 8)) return;      // never show last week's takes
+    COLUMN = d;
+  }catch(e){ /* no column today */ }
+  drawMatchups();
+}
+
+/* LLM text is escaped, then player names are re-emphasised from the known
+   roster only — nothing the model writes can inject markup. */
+function columnHtml(text){
+  let h = esc(String(text));
+  ROSTER.forEach(p => {
+    const n = p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    h = h.replace(new RegExp('(^|[^A-Za-z<])(' + n + ')\\b', 'g'), '$1<em>$2</em>');
+  });
+  return h;
+}
+
 function drawMatchups(){
   const host = el('matchups');
   if(!host) return;
@@ -1226,6 +1255,8 @@ function drawMatchups(){
   const top = ranked.slice(0, 3);
   if(!top.length){ host.innerHTML = ''; return; }
   const maxRisk = Math.max(...ranked.map(m => m.a.atRisk));
+  // Only trust the column if it was written for the week now on screen.
+  const usableColumn = !!(COLUMN && (GAMES.week == null || COLUMN.week === GAMES.week));
   ensureContext(top.filter(m => m.g.state !== 'post').map(m => m.g.id));
 
   const cards = top.map((m, i) => {
@@ -1262,8 +1293,12 @@ function drawMatchups(){
     // Finished games always get the factual result line — the column was
     // written before kickoff and would be describing a game that's over.
     const ctx = done ? '' : contextText(g, CONTEXT[g.id]);
+    // Finished games always get the factual result line — the column was
+    // written before kickoff and would be describing a game that's over.
+    const col = (!done && usableColumn && COLUMN.games[g.id]) ? COLUMN.games[g.id] : null;
     const body = done ? resultSentence(g, a)
-                      : previewText(g, a, {biggest: a.atRisk > 0 && a.atRisk === maxRisk});
+               : col ? columnHtml(col)
+                     : previewText(g, a, {biggest: a.atRisk > 0 && a.atRisk === maxRisk});
 
     return `<div class="mu">
       <div class="muhead"><span class="murk">${i+1}</span>${tag}${live}
@@ -1585,6 +1620,7 @@ themeBtn.onclick = () => {
 
 loadPolls();
 loadGames();
+loadColumn();
 loadTeamMeta();
 </script>
 </body>

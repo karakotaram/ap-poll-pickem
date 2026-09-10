@@ -1,11 +1,9 @@
 {
   "generated": "2026-09-08T15:34:06.134Z",
-  "model": "openai/gpt-oss-120b",
+  "model": "claude-opus-5",
   "season": 2026,
   "week": 2,
   "poll": "Preseason",
-  "games": {
-    "401856782": "John’s draft sits one tier below a top‑tier selection. A twenty‑two‑point spread reflects the perceived gap, but the actual point value remains at the lower tier.",
-    "401858439": "Merc is exposed to a potential loss that the opponent cannot suffer. Without a line, the only factor is Indiana’s ranking, which puts his points at risk."
-  }
+  "games": {},
+  "note": "cleared on the Anthropic port; repopulated by the next run"
 }

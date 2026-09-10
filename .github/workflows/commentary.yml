@@ -1,23 +1,17 @@
 name: Generate matchup commentary
 
-# The page no longer reads commentary.json — matchup cards now build their game
-# context from ESPN's own structured fields instead of an LLM. The schedule is
-# off so this stops spending the Groq key on a file nobody loads; the job is
-# kept for manual runs in case the column is ever revived.
-#   schedule:
-#     - cron: '0 13 * * 2'   # Tue 13:00 UTC  =  9am ET / 6am PT
-#     - cron: '0 15 * * 5'   # Fri 15:00 UTC  = 11am ET / 8am PT
+# Monday after the new AP poll has settled (and after the weekly email has
+# gone out at 13:00), and Friday once the lines have firmed up.
 on:
+  schedule:
+    - cron: '0 14 * * 1'   # Mon 14:00 UTC = 10am ET
+    - cron: '0 15 * * 5'   # Fri 15:00 UTC = 11am ET
   workflow_dispatch:        # manual run from the Actions tab
     inputs:
       model:
-        description: 'Groq model id (blank = openai/gpt-oss-120b)'
+        description: 'Model id (blank = claude-opus-5)'
         required: false
         default: ''
-      list_models:
-        description: 'Just list available Groq models and stop'
-        type: boolean
-        default: false
       no_write:
         description: 'Generate and print, but do not publish (safe model trials)'
         type: boolean
@@ -39,12 +33,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Generate commentary
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: ${{ inputs.model }}
-          LIST_MODELS: ${{ inputs.list_models && '1' || '0' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ inputs.model }}
           NO_WRITE: ${{ inputs.no_write && '1' || '0' }}
         run: node scripts/generate-commentary.mjs
 

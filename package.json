@@ -1,0 +1,26 @@
+{
+  "name": "ap-poll-pickem",
+  "version": "1.0.0",
+  "description": "**Live: https://karakotaram.github.io/ap-poll-pickem/**",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/karakotaram/ap-poll-pickem.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/karakotaram/ap-poll-pickem/issues"
+  },
+  "homepage": "https://github.com/karakotaram/ap-poll-pickem#readme",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
+    "zod": "^4.6.1"
+  }
+}

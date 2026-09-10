@@ -2,3 +2,4 @@
 .DS_Store
 email.html
 email-subject.txt
+node_modules/

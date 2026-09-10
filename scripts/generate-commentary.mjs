@@ -3,17 +3,20 @@
  * Generates columnist-style blurbs for the week's highest-impact games and
  * writes them to commentary.json.
  *
- * Runs in CI only — the Groq key never reaches the browser. The site treats
- * commentary.json as optional: if this script fails or never runs, the page
- * falls back to its built-in rule-based text.
+ * Runs in CI only — the Anthropic key never reaches the browser. The site
+ * treats commentary.json as optional: if this script fails or never runs, the
+ * page falls back to its built-in rule-based text.
  *
  * The roster is read out of index.html so there is exactly one source of truth.
  */
 import { readFile, writeFile } from 'node:fs/promises';
+import Anthropic from '@anthropic-ai/sdk';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { z } from 'zod';
 
-const GROQ_KEY   = process.env.GROQ_API_KEY;
-const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
-const N_GAMES    = 6;   // page shows 3; extra cover it picking a slightly different set
+const API_KEY = process.env.ANTHROPIC_API_KEY;
+const MODEL   = process.env.ANTHROPIC_MODEL || 'claude-opus-5';
+const N_GAMES = 6;   // page shows 3; extra cover it picking a slightly different set
 
 const DRY_RUN = process.env.DRY_RUN === '1';   // build the payload, skip the API call
 
@@ -21,29 +24,20 @@ if (!DRY_RUN) {
   // Distinguish "missing" from "present but empty" — `gh secret set` with no
   // stdin silently stores an empty string, which is otherwise invisible in CI
   // logs because there is nothing for GitHub to mask.
-  if (GROQ_KEY === undefined) {
-    console.error('GROQ_API_KEY is not set at all. Add it as a repository secret.');
+  if (API_KEY === undefined) {
+    console.error('ANTHROPIC_API_KEY is not set at all. Add it as a repository secret.');
     process.exit(1);
   }
-  if (!GROQ_KEY.trim()) {
-    console.error('GROQ_API_KEY is set but EMPTY — the secret was stored with no value.');
-    console.error('Re-add it via the web UI (Settings > Secrets and variables > Actions)');
-    console.error('or from an interactive terminal: gh secret set GROQ_API_KEY --repo <owner>/<repo>');
+  if (!API_KEY.trim()) {
+    console.error('ANTHROPIC_API_KEY is set but EMPTY — the secret was stored with no value.');
+    console.error('Re-add it via Settings > Secrets and variables > Actions,');
+    console.error('or from an interactive terminal: gh secret set ANTHROPIC_API_KEY --repo <owner>/<repo>');
     process.exit(1);
-  }
-  if (!/^gsk_/.test(GROQ_KEY.trim())) {
-    console.warn('warning: GROQ_API_KEY does not start with "gsk_" — check you pasted the right value.');
   }
 }
 
-if (process.env.LIST_MODELS === '1') {
-  const r = await fetch('https://api.groq.com/openai/v1/models', {
-    headers: { authorization: `Bearer ${GROQ_KEY}` } });
-  const d = await r.json();
-  (d.data || []).map(m => `${m.id}  ctx=${m.context_window ?? '?'}  owner=${m.owned_by ?? '?'}`)
-                .sort().forEach(l => console.log(l));
-  process.exit(0);
-}
+// Zero-arg constructor reads ANTHROPIC_API_KEY (or an `ant auth login` profile).
+const client = new Anthropic();
 
 const RANK_API = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football/seasons';
 const SB_API   = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard';
@@ -166,7 +160,7 @@ games.forEach(({ facts: f }) => {
     : `${f.home.name} is at home at ${f.venue}.`;
 });
 
-/* ---------- ask Groq ---------- */
+/* ---------- ask Claude ---------- */
 const ANGLES = [
   'lead with a verdict on somebody\'s draft pick, using the line as evidence rather than as information',
   'lead with the asymmetry — name who is playing with house money and who actually has something to lose',
@@ -222,70 +216,54 @@ HARD RULES:
 
 Return ONLY a JSON object mapping each game id to its blurb string: {"401756789": "..."}.`;
 
-const messages = [
-    { role: 'system', content: SYSTEM },
-    { role: 'user', content:
-        `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first.\n\n` +
+const USER =
+  `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first.\n\n` +
+  `Each game is assigned a REQUIRED opening angle. Obey it — it exists so the blurbs don't all read the same:\n` +
+  games.map((g, i) => `  ${g.facts.id} (${g.facts.matchup}) -> ${ANGLES[i % ANGLES.length]}`).join('\n') +
+  `\n\n${JSON.stringify(games.map(g => g.facts), null, 1)}`;
 
-        `Each game is assigned a REQUIRED opening angle. Obey it — it exists so the blurbs don't all read the same:\n` +
-        games.map((g, i) => `  ${g.facts.id} (${g.facts.matchup}) -> ${ANGLES[i % ANGLES.length]}`).join('\n') +
-        `\n\n${JSON.stringify(games.map(g => g.facts), null, 1)}` },
-];
+/* Structured outputs, so the reply is a typed object rather than prose we have
+   to scrape a JSON object out of. Keyed as an array because the ids are the
+   week's game ids and a JSON schema cannot express dynamic keys. */
+const BlurbSet = z.object({
+  games: z.array(z.object({
+    id: z.string().describe('the game id exactly as given in the facts'),
+    blurb: z.string().describe('two or three sentences about that game'),
+  })).describe('one entry per game supplied, in the same order'),
+});
 
-// gpt-oss models spend a large share of max_tokens on internal reasoning, so
-// the budget has to cover reasoning + the JSON payload or the object arrives
-// truncated and Groq rejects it with json_validate_failed.
-const MAX_TOKENS = 6000;
+const AuditSet = z.object({
+  verdicts: z.array(z.object({
+    id: z.string(),
+    ok: z.boolean().describe('false if the blurb states anything the facts do not support'),
+    reason: z.string().describe('short explanation when ok is false, otherwise empty'),
+  })),
+});
 
-async function callGroq(jsonMode) {
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      temperature: 0.85,
-      max_tokens: MAX_TOKENS,
-      ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
-      messages,
-    }),
+// Thinking is on by default on Opus 5, and temperature is no longer a knob on
+// this model family — variety comes from the per-game angles above instead.
+async function callClaude(system, user, format) {
+  const res = await client.messages.parse({
+    model: MODEL,
+    max_tokens: 16000,
+    system,
+    messages: [{ role: 'user', content: user }],
+    output_config: { format: zodOutputFormat(format) },
   });
-  if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 300)}`);
-  const d = await r.json();
-  const choice = d.choices?.[0] || {};
-  const msg = choice.message || {};
-  const content = msg.content || '';
-  if (!content.trim()) {
-    // Reasoning models can burn the whole budget before emitting content, or
-    // put the text somewhere other than message.content. Say which.
-    console.error(`empty content — finish_reason=${choice.finish_reason}` +
-      ` usage=${JSON.stringify(d.usage || {})}` +
-      ` fields=${Object.keys(msg).join(',')}` +
-      (msg.reasoning ? ` reasoning[0:200]=${String(msg.reasoning).slice(0, 200)}` : ''));
-  }
-  // Some models return the payload in `reasoning` when content comes back blank.
-  return content.trim() ? content : (msg.reasoning || '');
-}
-
-// Pull the first balanced {...} out of a free-text reply.
-function extractJson(text) {
-  const i = text.indexOf('{');
-  if (i < 0) return null;
-  let depth = 0, inStr = false, esc = false;
-  for (let j = i; j < text.length; j++) {
-    const c = text[j];
-    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
-    if (c === '"') inStr = true;
-    else if (c === '{') depth++;
-    else if (c === '}' && --depth === 0) return text.slice(i, j + 1);
-  }
-  return null;
+  if (res.stop_reason === 'refusal')
+    throw new Error(`model declined: ${res.stop_details?.category ?? 'unknown'}`);
+  if (!res.parsed_output)
+    throw new Error(`structured output did not parse (stop_reason=${res.stop_reason})`);
+  console.error(`  ${MODEL}: in=${res.usage.input_tokens} out=${res.usage.output_tokens}`);
+  return res.parsed_output;
 }
 
 if (DRY_RUN) {
-  console.log('--- SYSTEM PROMPT ---\n' + SYSTEM);
+  console.log('--- MODEL ---\n' + MODEL);
+  console.log('\n--- SYSTEM PROMPT ---\n' + SYSTEM);
   console.log('\n--- FACTS (' + games.length + ' games) ---');
   console.log(JSON.stringify(games.map(g => g.facts), null, 1));
-  console.log('\nDRY RUN — no Groq call made, commentary.json untouched.');
+  console.log('\nDRY RUN — no API call made, commentary.json untouched.');
   process.exit(0);
 }
 
@@ -546,51 +524,30 @@ Also mark ok=false if the writing is broken English: a garbled or mangled idiom 
 
 Do NOT mark ok=false for opinion, sarcasm, insults, bluntness or informal tone — rudeness is intended and is not an error. Judge only factual support and whether the English is coherent.
 
-Return ONLY JSON: {"<id>": {"ok": true|false, "reason": "<short>"}, ...}`;
+Return one verdict per item, carrying that item's id.`;
 
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${GROQ_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: GROQ_MODEL, temperature: 0, max_tokens: MAX_TOKENS,
-      messages: [{ role: 'system', content: sys },
-                 { role: 'user', content: JSON.stringify(items, null, 1) }],
-    }),
-  });
-  if (!r.ok) throw new Error(`groq ${r.status}`);
-  const txt = (await r.json()).choices?.[0]?.message?.content || '';
-  const j = extractJson(txt);
-  return j ? JSON.parse(j) : {};
+  const parsed = await callClaude(sys, JSON.stringify(items, null, 1), AuditSet);
+  return Object.fromEntries(parsed.verdicts.map(v => [String(v.id), v]));
 }
 
 let out = {};
 try {
-  let raw;
-  try {
-    raw = await callGroq(true);
-  } catch (e) {
-    // Strict JSON mode can fail outright (json_validate_failed). Retry in plain
-    // mode and dig the object out ourselves rather than losing the whole run.
-    console.error('json mode failed, retrying without it:', e.message);
-    raw = await callGroq(false);
-  }
-  const jsonText = extractJson(raw);
-  if (!jsonText) throw new Error('no JSON object in model reply');
-  const parsed = JSON.parse(jsonText);
+  const parsed = await callClaude(SYSTEM, USER, BlurbSet);
   const byId = new Map(games.map(g => [g.facts.id, g.facts]));
   let rejected = 0;
-  for (const [k, v] of Object.entries(parsed)) {
-    const facts = byId.get(String(k));
+  for (const item of parsed.games) {
+    const k = String(item.id);
+    const facts = byId.get(k);
     if (!facts) {
       // e.g. the model echoed the example id from the prompt instead of a real one
       console.error(`ignored unknown game id "${k}" — not in this week's slate`);
       continue;
     }
-    if (typeof v !== 'string' || !v.trim()) {
-      console.error(`ignored ${k}: empty or non-string value`);
+    if (typeof item.blurb !== 'string' || !item.blurb.trim()) {
+      console.error(`ignored ${k}: empty blurb`);
       continue;
     }
-    const blurb = v.trim().slice(0, 400);
+    const blurb = item.blurb.trim().slice(0, 400);
     const problem = validate(blurb, facts);
     if (problem) { console.error(`rejected ${k}: ${problem}\n   ${blurb}`); rejected++; continue; }
     out[String(k)] = blurb;
@@ -633,9 +590,9 @@ if (process.env.NO_WRITE === '1') {
 
 await writeFile(new URL('../commentary.json', import.meta.url), JSON.stringify({
   generated: new Date().toISOString(),
-  model: GROQ_MODEL,
+  model: MODEL,
   season, week, poll: poll.label,
   games: out,
 }, null, 2) + '\n');
 
-console.log(`wrote commentary.json — week ${week}, ${Object.keys(out).length} blurbs, model ${GROQ_MODEL}`);
+console.log(`wrote commentary.json — week ${week}, ${Object.keys(out).length} blurbs, model ${MODEL}`);
