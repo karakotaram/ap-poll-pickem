@@ -32,6 +32,11 @@ Poll data comes from ESPN's public rankings API (CORS-open, no key):
 On load the page fetches every week of the season in parallel — preseason
 (type 1), regular season weeks 1–17 (type 2), and the post-playoff Final
 Rankings (type 3) — and caches the result in `localStorage` for 30 minutes.
+Each request carries a query param that rolls every five minutes: ESPN's CDN
+serves these URLs stale-while-revalidate for up to **two hours**, so around
+the Sunday drop an edge can keep answering "no ranks yet" long after the
+poll is out — a rolling URL sidesteps the stale copy (the scripts do the
+same). `no-store` only bypasses the browser cache, not theirs.
 If ESPN is unreachable it falls back to the cache, then to an embedded
 snapshot of the poll (refreshed in the repo now and then), so the page always
 renders.

@@ -375,9 +375,16 @@ function normalize(d, t, w){
           ranks, others};
 }
 
+/* ESPN's CDN serves these rankings stale-while-revalidate for up to two
+   hours, so around Sunday's poll drop an edge can keep answering "no ranks
+   yet" long after the poll is out. A URL that rolls every five minutes
+   sidesteps the stale copy while still letting the edge cache inside the
+   window — no-store only bypasses the browser cache, not theirs. */
+const bust = () => Math.floor(Date.now() / 3e5);
+
 async function fetchSlot(t, w){
   try{
-    const r = await fetch(`${BASE}/${SEASON}/types/${t}/weeks/${w}/rankings/1`, {cache:'no-store'});
+    const r = await fetch(`${BASE}/${SEASON}/types/${t}/weeks/${w}/rankings/1?b=${bust()}`, {cache:'no-store'});
     if(!r.ok) return null;
     return normalize(await r.json(), t, w);
   }catch(e){ return null; }

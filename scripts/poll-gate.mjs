@@ -57,9 +57,14 @@ const jget = async u => {
   return r.json();
 };
 const slots = [[1, 1], ...Array.from({ length: 17 }, (_, i) => [2, i + 1]), [3, 1]];
+// Rolls every 5 minutes — dodges ESPN's CDN stale-while-revalidate window,
+// which otherwise can answer "no ranks yet" for up to two hours after the
+// poll drops. This gate exists to catch the poll minutes after release, so
+// it must not read a stale edge. Same trick as index.html.
+const bust = Math.floor(Date.now() / 3e5);
 const polls = (await Promise.all(slots.map(async ([t, w]) => {
   try {
-    const d = await jget(`${RANK_API}/${season}/types/${t}/weeks/${w}/rankings/1`);
+    const d = await jget(`${RANK_API}/${season}/types/${t}/weeks/${w}/rankings/1?b=${bust}`);
     if (!d.ranks?.length) return null;
     return {
       order: t * 100 + w,

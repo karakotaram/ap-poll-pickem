@@ -44,9 +44,13 @@ const tname = id => (TEAMS[id] ? TEAMS[id][0] : 'Team ' + id);
 /* ---------- every poll this season ---------- */
 const season = (() => { const d = new Date(); return d.getMonth() >= 1 ? d.getFullYear() : d.getFullYear() - 1; })();
 const slots = [[1,1], ...Array.from({length:17}, (_,i) => [2, i+1]), [3,1]];
+// Rolls every 5 minutes — dodges ESPN's CDN stale-while-revalidate window,
+// which can serve poll-drop-Sunday runs a rankings copy from before the
+// poll landed. Same trick as index.html and poll-gate.mjs.
+const bust = Math.floor(Date.now() / 3e5);
 const polls = (await Promise.all(slots.map(async ([t,w]) => {
   try {
-    const d = await jget(`${RANK_API}/${season}/types/${t}/weeks/${w}/rankings/1`);
+    const d = await jget(`${RANK_API}/${season}/types/${t}/weeks/${w}/rankings/1?b=${bust}`);
     if (!d.ranks?.length) return null;
     const id = ref => (/teams\/(\d+)/.exec(ref || '') || [])[1];
     return {
