@@ -875,9 +875,24 @@ async function loadGames(){
     if(c && Date.now() - c.at < 15*60*1000){ GAMES = c.g; drawMatchups(); return; }
   }catch(e){}
   try{
-    const r = await fetch(SB_URL + '?groups=80&limit=300', {cache:'no-store'});
+    /* ESPN's "current" week rolls over Monday ~3am ET, so on a poll-drop
+       Sunday it still points at the week just played. When the current week
+       has no game left to play, advance one week (regular week 17 rolls into
+       the postseason); one step only. Mirrored in weekly-email.mjs and
+       generate-commentary.mjs — keep the three in sync. */
+    let r = await fetch(SB_URL + '?groups=80&limit=300', {cache:'no-store'});
     if(!r.ok) throw 0;
-    const d = await r.json();
+    let d = await r.json();
+    const t = (d.season||{}).type || 2, w = (d.week||{}).number || null;
+    const hasPre = ev => (ev||[]).some(e =>
+      ((((e.competitions||[])[0]||{}).status||{}).type||{}).state === 'pre');
+    if(w != null && (d.events||[]).length && !hasPre(d.events)){
+      const nt = (t === 2 && w >= 17) ? 3 : t, nw = nt === t ? w + 1 : 1;
+      try{
+        const r2 = await fetch(`${SB_URL}?groups=80&limit=300&week=${nw}&seasontype=${nt}`, {cache:'no-store'});
+        if(r2.ok){ const d2 = await r2.json(); if((d2.events||[]).length) d = d2; }
+      }catch(e){ /* season over — keep the current week */ }
+    }
     GAMES = {week:(d.week||{}).number || null,
              events:(d.events||[]).map(parseEvent).filter(Boolean)};
     try{ localStorage.setItem(key, JSON.stringify({at:Date.now(), g:GAMES})); }catch(e){}

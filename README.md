@@ -106,11 +106,13 @@ otherwise inverts the owner's exposure.
 
 The preview under each upcoming matchup is written by **Claude Opus 5**
 (`claude-opus-5`) at build time, never in the browser. A GitHub Action runs
-`scripts/generate-commentary.mjs` Monday and Friday; it pulls the poll and the
-slate, ranks the games by the impact model above, sends the facts to the
-Anthropic API and commits the prose to `commentary.json`. The page loads that
-file and **falls back to the rule-based preview** whenever it's missing, stale,
-or the blurb for that game failed validation — so a bad run costs nothing.
+`scripts/generate-commentary.mjs` as soon as the new AP poll lands (the
+**Poll watch** workflow below) and again Friday once the lines have firmed
+up; it pulls the poll and the slate, ranks the games by the impact model
+above, sends the facts to the Anthropic API and commits the prose to
+`commentary.json`. The page loads that file and **falls back to the
+rule-based preview** whenever it's missing, stale, or the blurb for that game
+failed validation — so a bad run costs nothing.
 
 The ESPN game context sits above the column either way: that part is fact, and
 is not written by a model.
@@ -131,9 +133,9 @@ Prints the model, the system prompt and the exact facts payload. Override the
 model with `ANTHROPIC_MODEL=...`.
 
 The same column is reused in the weekly email, so the page and the email never
-say two different things about the same game. The commentary job runs an hour
-before the email on Mondays for that reason — a column written for last week's
-slate is discarded rather than shown.
+say two different things about the same game. Poll watch writes the column
+first and sends the email right after for that reason — a column written for
+last week's slate is discarded rather than shown.
 
 ### Notes on the Anthropic port
 
@@ -336,15 +338,36 @@ Notes:
   a literal non-ASCII character reaches it. A raw em-dash renders as `â€"` in
   any client that guesses the charset.
 - Games already played are filtered out; an email about last Saturday is
-  useless. Run it after the new poll lands and after the ESPN week rolls over
-  (Mondays around 3am ET) so "next week" means the upcoming slate.
+  useless. ESPN's "current" scoreboard week only rolls over Mondays around
+  3am ET, so on a poll-drop Sunday it still points at the week just played —
+  the generator (and the commentary script, and the page) detects a week with
+  no game left to play and advances one week, so "next week" means the
+  upcoming slate whenever it runs.
 
-### Sending
+### Sending — the Poll watch workflow
 
-`.github/workflows/weekly-email.yml` runs it Mondays at 13:00 UTC (9am ET in
-season, 8am once the clocks go back) and sends over Gmail SMTP. Every run
-uploads the built `email.html` as an artifact, so what went out can be read
-back rather than guessed at.
+The AP poll posts Sunday afternoons in season, usually just after 2pm ET.
+`.github/workflows/poll-watch.yml` checks right behind it and sends the email
+the same afternoon instead of waiting for Monday:
+
+- **Sun 2:10pm ET** (18:10 + 19:10 UTC — cron has no timezone, so each ET
+  time is scheduled at both its EDT and EST offsets)
+- **Sun ~8:10pm ET** (00:10 + 01:10 UTC Monday) — retry if the poll was late
+- **Mon 13:00 UTC** — the old Monday-morning slot, kept as the last resort
+
+Every run starts with `scripts/poll-gate.mjs`, which compares the latest poll
+ESPN has against the marker in `.github/poll-state.json` and stands down
+unless there is a poll we haven't processed. When there is one, the run
+generates the commentary, commits it, builds the email, sends over Gmail
+SMTP, and only then advances the marker — so a failed run is retried by the
+next cron rather than lost. The extra firings all hit the gate and exit,
+which is what makes the generous schedule safe.
+
+A poll the gate finds more than 3 days old (the repo was merged or fixed
+late) is recorded without emailing: a stale "news" email is worse than none.
+
+Every send uploads the built `email.html` as an artifact, so what went out
+can be read back rather than guessed at.
 
 Three secrets, all set by you — the app password never passes through anything
 else:
@@ -358,9 +381,12 @@ of eight people's addresses is a list anyone can scrape.
 
 Test without mailing anyone:
 
-    gh workflow run "Weekly pool email" -f dry_run=true
+    gh workflow run "Poll watch" -f force=true -f dry_run=true   # gate + column + email, nothing sent, marker untouched
+    gh workflow run "Weekly pool email" -f dry_run=true          # just the email build
 
-That builds the email and uploads the artifact but skips the send step.
+Both upload the built artifact and skip the send step. `Poll watch` with only
+`-f force=true` resends for a poll the marker already covers; the "Weekly pool
+email" workflow itself is manual-only now — its schedule moved to Poll watch.
 
 ## Scoring
 

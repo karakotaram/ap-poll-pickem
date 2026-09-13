@@ -90,8 +90,28 @@ poll.ranks.forEach(r => SM.set(r.id, { pts: pointsForRank(r.rank), rank: r.rank 
 poll.others.slice(0, 3).forEach((o, i) => { if (!SM.has(o.id)) SM.set(o.id, { pts: 2, rank: null, rv: i+1 }); });
 
 /* ---------- this week's games, ranked by pool impact ----------
-   Mirrors analyze() in index.html — keep the two in sync.        */
-const sb = await jget(`${SB_API}?groups=80&limit=300`);
+   Mirrors analyze() in index.html — keep the two in sync.
+
+   ESPN's "current" scoreboard week rolls over Monday around 3am ET, so on a
+   poll-drop Sunday it still points at the week just played — every game
+   final, nothing worth a preview. When the current week has no game left to
+   play, advance one week (regular week 17 rolls into the postseason). One
+   step only: if that week is empty too, the season is over and the current
+   answer stands. Mirrored in weekly-email.mjs and index.html — keep in sync. */
+async function upcomingScoreboard() {
+  const cur = await jget(`${SB_API}?groups=80&limit=300`);
+  const hasPre = d => (d.events || [])
+    .some(e => (e.competitions?.[0]?.status?.type?.state || 'pre') === 'pre');
+  const t = cur.season?.type ?? 2, w = cur.week?.number ?? null;
+  if (!(cur.events || []).length || hasPre(cur) || w == null) return cur;
+  const [nt, nw] = t === 2 && w >= 17 ? [3, 1] : [t, w + 1];
+  try {
+    const nxt = await jget(`${SB_API}?groups=80&limit=300&week=${nw}&seasontype=${nt}`);
+    if (nxt.events?.length) return nxt;
+  } catch { /* season over — fall through */ }
+  return cur;
+}
+const sb = await upcomingScoreboard();
 const week = sb.week?.number ?? null;
 
 const games = (sb.events || []).map(e => {

@@ -1,0 +1,145 @@
+name: Poll watch
+
+# The AP poll posts Sunday afternoons in season, usually just after 2pm ET.
+# Check right behind it, again in the evening if it was late, and keep the
+# old Monday-morning slot as the last resort. Every run asks the same
+# question — is there a poll we haven't processed? — and exits quietly when
+# the answer is no, so the extra firings cost nothing.
+#
+# When a new poll IS up: write the column first, then build and send the
+# email, so the email reuses the column and the page and the email never say
+# two different things about the same game. Only after a real send does the
+# marker advance; a failed run is retried by the next cron.
+#
+# Cron is UTC with no timezone support, so each ET time is scheduled at both
+# its EDT and EST offsets; the gate makes whichever one is off-target a no-op.
+on:
+  schedule:
+    - cron: '10 18 * * 0'   # Sun 2:10pm EDT (1:10pm EST — usually before the poll)
+    - cron: '10 19 * * 0'   # Sun 2:10pm EST / 3:10pm EDT
+    - cron: '10 0 * * 1'    # Sun 8:10pm EDT / 7:10pm EST
+    - cron: '10 1 * * 1'    # Sun 8:10pm EST / 9:10pm EDT
+    - cron: '0 13 * * 1'    # Mon morning fallback — the old email slot
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Send even if the latest poll was already processed'
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Build everything and upload it, but send nothing and leave the marker alone'
+        type: boolean
+        default: false
+
+concurrency:
+  group: poll-watch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  check-and-send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Has a new poll landed?
+        id: gate
+        env:
+          FORCE: ${{ inputs.force && '1' || '0' }}
+        run: node scripts/poll-gate.mjs
+
+      - name: Install dependencies
+        if: steps.gate.outputs.new == 'true'
+        run: npm ci
+
+      # A bad column costs nothing: the email falls back per game to its
+      # built-in line, same as the page.
+      - name: Generate commentary
+        if: steps.gate.outputs.new == 'true'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/generate-commentary.mjs
+
+      - name: Commit commentary if changed
+        if: steps.gate.outputs.new == 'true'
+        run: |
+          # git status (not git diff) — on the very first run commentary.json is
+          # untracked, and git diff reports no change for untracked files.
+          if [ -z "$(git status --porcelain commentary.json)" ]; then
+            echo "no change — nothing to commit"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add commentary.json
+          git commit -m "Update matchup commentary [skip ci]"
+          git pull --rebase origin main
+          git push
+
+      - name: Build the email
+        if: steps.gate.outputs.new == 'true'
+        id: build
+        run: |
+          node scripts/weekly-email.mjs
+          echo "subject=$(cat email-subject.txt)" >> "$GITHUB_OUTPUT"
+
+      # Always keep a copy of exactly what was built, so a bad send can be
+      # inspected after the fact rather than guessed at.
+      - name: Upload a copy
+        if: steps.gate.outputs.new == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pool-email
+          path: |
+            email.html
+            email-subject.txt
+          retention-days: 30
+
+      - name: Send
+        if: steps.gate.outputs.new == 'true' && !inputs.dry_run
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          from: AP Poll Pick'em <${{ secrets.MAIL_USERNAME }}>
+          # Recipients live in a secret, not in this file: the repo is public.
+          to: ${{ secrets.MAIL_TO }}
+          subject: ${{ steps.build.outputs.subject }}
+          html_body: file://email.html
+          convert_markdown: false
+
+      # After a real send — or for a poll too old to be worth emailing — pin
+      # the marker so later runs stand down. Values pass through env, not
+      # inline interpolation: the label originates at ESPN and does not
+      # belong in a shell template.
+      - name: Record the processed poll
+        if: (steps.gate.outputs.new == 'true' && !inputs.dry_run) || steps.gate.outputs.adopt == 'true'
+        env:
+          SEASON: ${{ steps.gate.outputs.season }}
+          ORDER: ${{ steps.gate.outputs.order }}
+          LABEL: ${{ steps.gate.outputs.label }}
+        run: |
+          node scripts/poll-gate.mjs mark "$SEASON" "$ORDER" "$LABEL"
+          if [ -z "$(git status --porcelain .github/poll-state.json)" ]; then
+            echo "marker unchanged — nothing to commit"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/poll-state.json
+          git commit -m "Record processed AP poll: $LABEL [skip ci]"
+          # A push race here matters more than elsewhere: if the marker
+          # doesn't land, the next cron re-sends the same email.
+          git pull --rebase origin main
+          git push

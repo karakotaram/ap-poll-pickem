@@ -1,11 +1,10 @@
 name: Generate matchup commentary
 
-# Monday once the new AP poll has settled, and Friday once the lines have
-# firmed up. Monday runs BEFORE the weekly email (14:00) on purpose: the email
-# reuses this column, and a column written for last week's slate is discarded.
+# Friday, once the lines have firmed up, to refresh the column written when
+# the poll dropped. The poll-drop run itself lives in poll-watch.yml, which
+# generates the column and then sends the email that reuses it.
 on:
   schedule:
-    - cron: '0 13 * * 1'   # Mon 13:00 UTC = 9am ET
     - cron: '0 15 * * 5'   # Fri 15:00 UTC = 11am ET
   workflow_dispatch:        # manual run from the Actions tab
     inputs:

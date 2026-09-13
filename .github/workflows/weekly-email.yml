@@ -1,14 +1,10 @@
 name: Weekly pool email
 
-# Monday morning: the new AP poll has landed and ESPN's week has already rolled
-# over (~3am ET), so "next week" resolves to the upcoming slate rather than the
-# weekend just played. Runs an hour after the commentary job (13:00) so it picks
-# up the column written for this week rather than last week's. Cron is UTC and
-# has no timezone support, so this is 10am ET in season and 9am once the clocks
-# go back in November.
+# Manual-only. The scheduled send lives in poll-watch.yml, which fires as
+# soon as a new AP poll lands (Sunday afternoon in season) instead of waiting
+# for Monday morning. This workflow stays for testing the build and for
+# resending by hand.
 on:
-  schedule:
-    - cron: '0 14 * * 1'    # Mon 14:00 UTC = 10am ET (EDT)
   workflow_dispatch:
     inputs:
       dry_run:
