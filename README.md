@@ -32,8 +32,9 @@ Poll data comes from ESPN's public rankings API (CORS-open, no key):
 On load the page fetches every week of the season in parallel — preseason
 (type 1), regular season weeks 1–17 (type 2), and the post-playoff Final
 Rankings (type 3) — and caches the result in `localStorage` for 30 minutes.
-If ESPN is unreachable it falls back to the cache, then to an embedded copy of
-the preseason poll, so the page always renders.
+If ESPN is unreachable it falls back to the cache, then to an embedded
+snapshot of the poll (refreshed in the repo now and then), so the page always
+renders.
 
 Team names are resolved from an embedded ESPN team-ID map, and each player's
 picks are stored as ESPN team IDs — so nothing depends on fuzzy name matching.
