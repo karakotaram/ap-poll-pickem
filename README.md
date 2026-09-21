@@ -318,6 +318,22 @@ was still inside its 15-minute TTL and had no event ids to match odds against,
 so every line rendered as a dash — the page looked fine and was quietly wrong.
 Shape checks beat remembering to bump a constant.
 
+### Live scores
+
+A game already underway shows its score in place of the kickoff time — the
+drafted team's points first, green when they're ahead and red when they're
+behind, with the game clock beneath it ("● 9:32 - 2nd"). The schedule
+endpoint only carries a score once a game is final, so the score and the state
+both come from the weekly scoreboard the matchup cards already use; the two
+feeds share ESPN's event ids, which is what makes the join trivial. A game that
+has just gone final reads "Final" with its score until the 15-minute schedule
+cache turns over and moves it into the "Last game" column.
+
+While anything is in progress the scoreboard cache drops from 15 minutes to 60
+seconds and the page refetches on that cadence, redrawing the matchup cards and
+the table. The loop stops on its own the moment nothing is live, and a hidden
+tab waits its turn rather than spending a request nobody is looking at.
+
 ## Weekly email
 
 `scripts/weekly-email.mjs` builds a message with the standings, two or three

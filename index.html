@@ -217,6 +217,11 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
 .tmres{font-weight:660;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tmres.w{color:var(--good)} .tmres.l{color:var(--bad)}
 .tmsub{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;margin-top:2px}
+.tmlive{margin-left:7px;font-weight:660;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tmlive.w{color:var(--good)} .tmlive.l{color:var(--bad)}
+.tmsub.live{color:var(--warn)}
+.tmdot{display:inline-block;width:5px;height:5px;border-radius:50%;
+       background:var(--warn);margin-right:5px;vertical-align:1px}
 .tmdash{color:var(--muted)}
 .tmwait{color:var(--muted);letter-spacing:.12em}
 th.sortable{cursor:pointer;user-select:none}
@@ -875,12 +880,19 @@ function parseEvent(e){
           note:note ? note.headline : ''};
 }
 
-async function loadGames(){
+const anyLive = g => !!(g && (g.events || []).some(e => e.state === 'in'));
+
+async function loadGames(fresh){
   const key = `appickem:${SCHEMA}:games`;
-  try{
-    const c = JSON.parse(localStorage.getItem(key) || 'null');
-    if(c && Date.now() - c.at < 15*60*1000){ GAMES = c.g; drawMatchups(); return; }
-  }catch(e){}
+  // A scoreboard with a game on it goes stale in a minute, not a quarter hour.
+  if(!fresh){
+    try{
+      const c = JSON.parse(localStorage.getItem(key) || 'null');
+      if(c && Date.now() - c.at < (anyLive(c.g) ? 60*1000 : 15*60*1000)){
+        GAMES = c.g; afterGames(); return;
+      }
+    }catch(e){}
+  }
   try{
     /* ESPN's "current" week rolls over Monday ~3am ET, so on a poll-drop
        Sunday it still points at the week just played. When the current week
@@ -904,7 +916,20 @@ async function loadGames(){
              events:(d.events||[]).map(parseEvent).filter(Boolean)};
     try{ localStorage.setItem(key, JSON.stringify({at:Date.now(), g:GAMES})); }catch(e){}
   }catch(e){ GAMES = null; }
+  afterGames();
+}
+
+/* The scoreboard is the only feed that moves during a Saturday, and both the
+   matchup cards and the Teams table read live state off it — so refresh just
+   this one while something is in progress, and stop the moment nothing is. */
+let GAMETIMER = null;
+function afterGames(){
   drawMatchups();
+  drawTeams();
+  if(GAMETIMER) clearTimeout(GAMETIMER);
+  if(!anyLive(GAMES)) return;
+  // a hidden tab keeps its place in line rather than burning a request
+  GAMETIMER = setTimeout(() => document.hidden ? afterGames() : loadGames(true), 60*1000);
 }
 
 /* Impact = pool points on the field, amplified by how close the game is
@@ -1408,6 +1433,20 @@ function lineFor(g){
               : (sp > 0 ? '+' : '') + (Math.round(sp * 10) / 10)};
 }
 
+/* The per-team schedule feed only carries a score once a game is final, so a
+   game already underway gets its numbers from the weekly scoreboard — both
+   feeds key off the same ESPN event id. The drafted team's score comes first. */
+function liveScore(id, g){
+  if(!g || !GAMES) return null;
+  const e = (GAMES.events || []).find(x => String(x.id) === String(g.id));
+  if(!e || (e.state !== 'in' && e.state !== 'post')) return null;
+  const home = String((e.home || {}).id) === String(id);
+  if(!home && String((e.away || {}).id) !== String(id)) return null;   // not this team's game
+  const mine = home ? e.home : e.away, theirs = home ? e.away : e.home;
+  return {pf:mine.score, pa:theirs.score, done:e.state === 'post',
+          detail:e.detail || (e.state === 'post' ? 'Final' : 'Live')};
+}
+
 /* Unranked sorts after every ranked team; receiving-votes sits between. */
 const apKey   = r => r.rank || (r.rv ? 100 + r.rv : 999);
 const winPct  = m => (m && m.w + m.l + m.t) ? (m.w + m.t * .5) / (m.w + m.l + m.t) : -1;
@@ -1458,9 +1497,16 @@ function drawTeams(){
            m.last.tie ? 'T' : m.last.win ? 'W' : 'L'} ${m.last.pf}&ndash;${m.last.pa}</span>
          <span class="tmsub">${esc(sideText(m.last))}${m.last.neutral ? ' (N)' : ''}${wkTag(m.last)}</span>`;
 
+    // A game in flight replaces its kickoff time with the score and the clock;
+    // the schedule feed is up to 15 minutes old, so the state comes off GAMES.
+    const lv = (m && m.next) ? liveScore(r.id, m.next) : null;
     const next = !m ? wait : !m.next ? '<span class="tmdash">season over</span>'
-      : `<span class="tmnext">${esc(sideText(m.next))}${m.next.neutral ? ' (N)' : ''}</span>
-         <span class="tmsub">${esc(kickText(m.next))}${wkTag(m.next)}</span>`;
+      : `<span class="tmnext">${esc(sideText(m.next))}${m.next.neutral ? ' (N)' : ''}</span>${
+         lv ? `<span class="tmlive ${lv.pf > lv.pa ? 'w' : lv.pf < lv.pa ? 'l' : ''}">${
+                 lv.pf}&ndash;${lv.pa}</span>` : ''}
+         <span class="tmsub${lv && !lv.done ? ' live' : ''}">${
+           lv && !lv.done ? '<span class="tmdot"></span>' : ''}${
+           esc(lv ? lv.detail : kickText(m.next))}${wkTag(m.next)}</span>`;
 
     const l = (m && m.next) ? lineFor(m.next) : null;
     const line = !m || !m.next ? '<span class="tmdash">&mdash;</span>'
