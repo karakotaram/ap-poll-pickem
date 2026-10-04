@@ -1,25 +1,27 @@
 name: Poll watch
 
 # The AP poll posts Sunday afternoons in season, usually just after 2pm ET.
-# Check right behind it, again in the evening if it was late, and keep the
-# old Monday-morning slot as the last resort. Every run asks the same
-# question — is there a poll we haven't processed? — and exits quietly when
-# the answer is no, so the extra firings cost nothing.
+# Every run asks the same question — is there a poll we haven't processed? —
+# and exits quietly when the answer is no, so extra firings cost nothing.
 #
 # When a new poll IS up: write the column first, then build and send the
 # email, so the email reuses the column and the page and the email never say
 # two different things about the same game. Only after a real send does the
 # marker advance; a failed run is retried by the next cron.
 #
-# Cron is UTC with no timezone support, so each ET time is scheduled at both
-# its EDT and EST offsets; the gate makes whichever one is off-target a no-op.
+# The schedule is deliberately dense because GitHub runs cron at low
+# priority and fires this repo's slots HOURS late — observed drift through
+# September 2026 was +2.5h to +7h, every single week (the "2:10pm" check was
+# executing near 5pm). Hourly Sunday slots starting before the poll drop
+# mean some delayed firing always lands shortly after the poll is actually
+# up, whatever the drift that day; the gate makes all the others no-ops.
+# A manual "Run workflow" dispatch is never queue-drifted — use that to
+# send immediately.
 on:
   schedule:
-    - cron: '10 18 * * 0'   # Sun 2:10pm EDT (1:10pm EST — usually before the poll)
-    - cron: '10 19 * * 0'   # Sun 2:10pm EST / 3:10pm EDT
-    - cron: '10 0 * * 1'    # Sun 8:10pm EDT / 7:10pm EST
-    - cron: '10 1 * * 1'    # Sun 8:10pm EST / 9:10pm EDT
-    - cron: '0 13 * * 1'    # Mon morning fallback — the old email slot
+    - cron: '10 15-23 * * 0'   # Sun hourly, 11:10am-7:10pm EDT (with drift: into the evening)
+    - cron: '10 0-2 * * 1'     # Sun 8:10-10:10pm EDT
+    - cron: '0 13 * * 1'       # Mon morning last resort — the old email slot
   workflow_dispatch:
     inputs:
       force:

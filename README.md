@@ -368,13 +368,19 @@ Notes:
 ### Sending — the Poll watch workflow
 
 The AP poll posts Sunday afternoons in season, usually just after 2pm ET.
-`.github/workflows/poll-watch.yml` checks right behind it and sends the email
-the same afternoon instead of waiting for Monday:
+`.github/workflows/poll-watch.yml` checks for it through the afternoon and
+sends the email the same day instead of waiting for Monday:
 
-- **Sun 2:10pm ET** (18:10 + 19:10 UTC — cron has no timezone, so each ET
-  time is scheduled at both its EDT and EST offsets)
-- **Sun ~8:10pm ET** (00:10 + 01:10 UTC Monday) — retry if the poll was late
+- **Sunday hourly, 15:10–23:10 UTC** (11:10am–7:10pm EDT), then **00:10–02:10
+  UTC Monday** (Sunday evening ET)
 - **Mon 13:00 UTC** — the old Monday-morning slot, kept as the last resort
+
+The density is not caution, it is measurement: GitHub runs cron at low
+priority and has fired this repo's slots **2.5 to 7 hours late every week**
+— a nominal 2:10pm check was executing near 5pm. With hourly slots starting
+before the drop, some delayed firing always lands shortly after the poll is
+actually up, whatever that day's drift. A manual "Run workflow" dispatch
+never queue-drifts; use it to send immediately.
 
 Every run starts with `scripts/poll-gate.mjs`, which compares the latest poll
 ESPN has against the marker in `.github/poll-state.json` and stands down
