@@ -252,9 +252,16 @@ const TEAM_LINES = {};
 games.forEach(({ facts: f }) => {
   for (const s of [f.away, f.home]) {
     const r = RANKS.get(String(s.id));
-    s.statPhrases = r && r.gp >= MIN_GAMES
-      ? [`${s.name}'s ${rankedAs(r.off)} scoring offense`, `${s.name}'s ${rankedAs(r.def)} scoring defense`]
-      : [];
+    // A few wordings of the same two ranks: one fixed form made every
+    // matchup sentence in the set read identically.
+    s.statPhrases = r && r.gp >= MIN_GAMES ? [
+      `${s.name}'s ${rankedAs(r.off)} scoring offense`,
+      `a ${s.name} offense that ranks ${ordinal(r.off)} in scoring`,
+      `${s.name}'s offense, ${ordinal(r.off)} in scoring`,
+      `${s.name}'s ${rankedAs(r.def)} scoring defense`,
+      `a ${s.name} defense that ranks ${ordinal(r.def)} in points allowed`,
+      `${s.name}'s defense, ${ordinal(r.def)} in points allowed`,
+    ] : [];
   }
   const t = teamLine(f, RANKS);
   if (t) TEAM_LINES[f.id] = t;
@@ -280,12 +287,21 @@ WHAT THE LINE MEANS — a line like "ND -20.5" means Notre Dame is FAVORED and m
 
 HOW SCORING ACTUALLY WORKS — you have been getting this wrong. Points come from where a team sits in the AP poll, NOT from winning a game. Winning a game adds nothing; it defends a team's existing ranking. Losing subtracts nothing directly; it risks the team sliding in next week's poll, and the slide is where points are lost. So never write that someone "gains 15 points" by covering, or "collects" points by winning. The correct framing is exposure: the owner of a highly ranked team has points to LOSE, and the owner of an unranked team has nothing to lose and something to gain only if their team climbs into the poll.
 
-WHAT EACH PREVIEW COVERS — three or four sentences, 80 words at most:
-1. The stakes. Who has points riding on this game and who has nothing to lose. A team's pollMove, when it has one, is often the best way in: a team that just moved up has a new spot to defend.
-2. The matchup. How the two teams compare, using their statPhrases — at least one sentence, covering both teams when both have them.
-3. What to watch, only if there is something worth saying: whether a team that just moved can hold it, or whether the line agrees with the stat ranks. Leave it out rather than pad.
+WHAT A PREVIEW IS — two or three sentences, 60 words at most. Find the one or two things that make THIS game worth watching for the pool and say those. The facts are a menu, not a checklist:
+- who has points riding on the game, or one owner holding both sides
+- a team that just moved in the poll (pollMove) and now has a spot to defend
+- how the teams match up: a big gap between one team's offense and the other's defense, the best unit on the field, two strong units meeting
+- whether the line agrees with the stat ranks or with the poll
+- an unbeaten record, a neutral site, a road favorite
+Use what is interesting about this game and leave the rest out.
 
-STAT RANKS — COPY THE PHRASES EXACTLY. Each team with stats has statPhrases such as "Texas's 55th-ranked scoring offense". Whenever you cite where a team ranks on offense or defense, copy one of its phrases word for word, apostrophe included, and build the sentence around it. Never write a stat rank any other way ("Texas's offense ranks 55th", "the 55th-best offense"), never move a number from one phrase to another, and never give a rank for a team whose statPhrases list is empty. These are national ranks in points scored and allowed per game among FBS teams. You may say one unit ranks well above or below another; do not invent anything else about how a team plays.
+THE SIX ARE READ TOGETHER, ONE AFTER ANOTHER. Write them as a set and make them sound different from each other:
+- No two previews may follow the same order of ideas. Lead one with the matchup, another with the poll move, another with an owner, another with the line.
+- Usually one stat pairing, the telling one, is enough. Write the both-directions construction ("A's offense meets B's defense, and B's offense faces A's defense") in at most one preview.
+- Mention the line in at most half of the previews.
+- Never reuse a phrase from another preview in the set — not "has nothing to lose", "a new spot to defend", "which fits the ranks", "depend on keeping it there", or any other.
+
+STAT RANKS — COPY A PHRASE EXACTLY. Each team with stats has statPhrases: its scoring-offense and scoring-defense ranks, each written three ways, e.g. "Texas's 55th-ranked scoring offense", "a Texas offense that ranks 55th in scoring", "Texas's offense, 55th in scoring". Whenever you cite where a team ranks on offense or defense, copy one of its phrases word for word (a capital letter at the start of a sentence is fine) and build the sentence around it. Never write a stat rank any other way ("Texas's offense ranks 55th", "the 55th-best offense"), never move a number from one phrase to another, and never give a rank for a team whose statPhrases list is empty. These are national ranks in points scored and allowed per game among FBS teams. You may say one unit ranks well above or below another; do not invent anything else about how a team plays.
 
 DON'T RECITE THE CARD. The card above your text already shows both teams' ranks, both owners, both point values, the total at stake, the line, the TV network and the venue. Bring those up only to say what they mean: who has something to lose, who has nothing to lose, whether the line agrees with the stat ranks. "Murph's Louisville is No.24, worth 3 points" tells the reader nothing new. Never name the TV network or the stadium.
 
@@ -299,10 +315,10 @@ NO TIER TALK. Do not mention scoring tiers or bands, or what the next spot up or
 
 BANNED: hype cliches ("all eyes on", "must-win", "buckle up", "for the ages"), exclamation marks, emoji, rhetorical questions, and opening two blurbs the same way.
 
-STYLE SAMPLES — match this register, never reuse the content:
-- "Jim has fifteen points riding on SMU; Merc has nothing at risk with Florida State. SMU's 14th-ranked scoring offense takes on Florida State's 92nd-ranked scoring defense, and Florida State's 61st-ranked scoring offense meets SMU's 30th-ranked scoring defense. SMU is favored by two and a half on the road, which fits the ranks."
-- "Ty and Mike each have twenty points here, so a loss puts one of those twenties at risk in next week's poll. Notre Dame's 4th-ranked scoring defense is the best unit on the field, and it faces Georgia's 22nd-ranked scoring offense."
-- "Kansas State moved up from No.21 to No.16 this week, so Karan's five points now depend on keeping it there. Kansas State's 9th-ranked scoring defense meets Baylor's 80th-ranked scoring offense. Baylor is still favored by a field goal at home, so the market is less sure of Kansas State than the voters are."
+STYLE SAMPLES — three different shapes. Match the register, never reuse the content or copy a shape for every game:
+- "Kansas State's 9th-ranked scoring defense gets a Baylor offense that ranks 80th in scoring, the widest gap on the field. Karan has 5 points on Kansas State, which just moved up from No.21 to No.16."
+- "Mike drafted both teams, so the only question for him is which one is ranked next week. Clemson is the one carrying points, 10 of them."
+- "The market makes Utah a 6-point favorite on the road, and the numbers back it: a Utah defense that ranks 7th in points allowed against Arizona's 98th-ranked scoring offense. Chris has 10 points on Utah and Jim has none on Arizona."
 
 HARD RULES:
 - Use ONLY the facts in the JSON provided. You have no other knowledge of these teams.
@@ -314,7 +330,7 @@ HARD RULES:
 - Never predict a final score, declare a winner, or call anything decided or near-certain. BANNED: "almost a certainty", "no room for surprise", "sits safely", "collects the pot", "before the season even starts". BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
 - Refer to owners by the exact names above.
 - A team's nickname and its name are the SAME team — Notre Dame is the Fighting Irish, Ole Miss is the Rebels. Never use both in one sentence, and never write a team as though it were playing itself ("Notre Dame fails to dominate the Irish" is nonsense). Picking one name per sentence is safest.
-- 3 or 4 sentences per game. Never fewer than 3. 80 words max.
+- 2 or 3 sentences per game. Never one. 60 words max.
 - Do not use the construction "X, while Y" in more than one blurb.
 - Every blurb must open differently from the others.
 
@@ -328,7 +344,7 @@ THESE SIX MISTAKES GOT BLURBS THROWN AWAY IN RECENT RUNS. Do not repeat them:
 
 const USER =
   `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first. ` +
-  `Write one preview per game, and open each one differently from the others.\n\n` +
+  `Write one preview per game. Plan the six as a set first, so no two share an opening, an order of ideas, or a phrase.\n\n` +
   JSON.stringify(games.map(g => g.facts), null, 1);
 
 /* Structured outputs, so the reply is a typed object rather than prose we have
@@ -337,7 +353,7 @@ const USER =
 const BlurbSet = z.object({
   games: z.array(z.object({
     id: z.string().describe('the game id exactly as given in the facts'),
-    blurb: z.string().describe('three or four sentences about that game'),
+    blurb: z.string().describe('two or three sentences about that game'),
   })).describe('one entry per game supplied, in the same order'),
 });
 
@@ -670,7 +686,7 @@ const RANK_WORD = new RegExp('\\b\\d+(?:st|nd|rd|th)\\b|-ranked\\b|\\b(?:' +
 function statProblem(blurb, facts) {
   let rest = blurb.replace(/[\u2018\u2019]/g, "'").replace(/[\u2010\u2011]/g, '-');
   for (const ph of [...(facts.away.statPhrases || []), ...(facts.home.statPhrases || [])])
-    rest = rest.split(ph).join(' ');
+    rest = rest.replace(new RegExp(ph.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ');
   for (const sentence of rest.split(/(?<=[.!?])\s+/))
     if (UNIT_WORD.test(sentence) && RANK_WORD.test(sentence))
       return 'gives an offense or defense rank without copying one of the supplied statPhrases word for word';
@@ -792,9 +808,60 @@ async function auditInto(ids) {
   }
 }
 
+/* Six previews are read one after another, so a phrase that turns up in three
+   of them reads as a template ("has nothing to lose", "is favored by 3.5 at
+   home, which fits the ranks"). Team names, owners, numbers and the supplied
+   stat phrases are masked first — those repeat legitimately — and any 4-word
+   run left that two earlier previews already used sends this one back for a
+   rewrite. This is style, not fact: a rewrite that fails the checks keeps the
+   original rather than dropping it. */
+const MASKS = new Set(['team', 'owner', 'stat', 'n', 'rank']);
+const STOP = new Set(['the', 'a', 'an', 'and', 'of', 'to', 'in', 'on', 'at', 'is', 'it', 'its', 'for',
+  'with', 'by', 'as', 'that', 'this', 'but', 'so', 'or', 'has', 'have', 'from', 'be', 'are', 'was']);
+
+function wordRuns(text, f) {
+  const esc_ = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let t = text.replace(/[\u2018\u2019]/g, "'");
+  for (const ph of [...(f.away.statPhrases || []), ...(f.home.statPhrases || [])])
+    t = t.replace(new RegExp(esc_(ph), 'gi'), ' stat ');
+  for (const sd of [f.away, f.home])
+    for (const n of [sd.name, sd.abbr, sd.nickname].filter(Boolean))
+      t = t.replace(new RegExp(`\\b${esc_(n)}\\b('s)?`, 'g'), ' team ');
+  OWNER_NAMES.forEach(n => { t = t.replace(new RegExp(`\\b${esc_(n)}\\b('s)?`, 'g'), ' owner '); });
+  const w = t.toLowerCase().replace(/no\.\s*\d+/g, ' rank ').replace(/\d+(?:\.\d+)?/g, ' n ')
+             .replace(/[^a-z' ]+/g, ' ').split(/\s+/).filter(Boolean);
+  const runs = new Set();
+  for (let i = 0; i + 4 <= w.length; i++) {
+    const g = w.slice(i, i + 4);
+    if (g.some(x => !MASKS.has(x) && !STOP.has(x))) runs.add(g.join(' '));
+  }
+  return runs;
+}
+
+function repeatedAcrossSet() {
+  const used = new Map();                // run -> how many earlier previews used it
+  const flagged = new Map();             // id -> the run it repeated
+  for (const { facts: f } of games) {    // impact order: the top games keep their wording
+    if (!out[f.id]) continue;
+    const runs = wordRuns(out[f.id], f);
+    const hit = [...runs].find(r => (used.get(r) || 0) >= 2);
+    if (hit) flagged.set(f.id, hit);
+    runs.forEach(r => used.set(r, (used.get(r) || 0) + 1));
+  }
+  return flagged;
+}
+
 try {
   ingest(await callClaude(SYSTEM, USER, BlurbSet), 'first pass');
   await auditInto(Object.keys(out));
+
+  const styleOnly = {};                  // id -> the accepted text to fall back on
+  for (const [id, run] of repeatedAcrossSet()) {
+    console.error(`repetition ${id}: reuses "${run}"\n   ${out[id]}`);
+    styleOnly[id] = out[id];
+    failures.set(id, `reads like the other previews — it repeats the wording "${run}" (names and numbers masked). ` +
+                     `Rewrite it with a different opening, order of ideas and phrasing`);
+  }
 
   /* Repair round. Every rejection reason is a specific, actionable sentence —
      handing it straight back is far cheaper than regenerating the slate and
@@ -803,17 +870,24 @@ try {
   if (failures.size) {
     const wanted = [...failures.keys()].filter(id => byId.has(id));
     console.error(`repairing ${wanted.length}: ${wanted.join(', ')}`);
+    const kept = Object.entries(out).filter(([id]) => !wanted.includes(id));
     const repairUser =
-      `These blurbs were rejected by the fact-checker. Rewrite ONLY these games, ` +
+      `These previews were sent back. Rewrite ONLY these games, ` +
       `fixing the stated problem. Everything else in the brief still applies.\n\n` +
-      wanted.map(id => `  ${id} (${byId.get(id).matchup})\n    rejected because: ${failures.get(id)}`).join('\n') +
-      `\n\nFacts for those games:\n` +
+      wanted.map(id => `  ${id} (${byId.get(id).matchup})\n    sent back because: ${failures.get(id)}`).join('\n') +
+      (kept.length ? `\n\nPreviews already accepted for the other games. Do not reuse their openings, ` +
+                     `order of ideas or phrasing:\n` + kept.map(([, t]) => `  - ${t}`).join('\n') : '') +
+      `\n\nFacts for the games to rewrite:\n` +
       JSON.stringify(wanted.map(id => byId.get(id)), null, 1);
     try {
       ingest(await callClaude(SYSTEM, repairUser, BlurbSet), 'repair');
       await auditInto(wanted);
     } catch (e) {
       console.error('repair round failed, keeping the first pass:', e.message);
+    }
+    // A rewrite for repetition that didn't survive keeps the accepted original.
+    for (const [id, text] of Object.entries(styleOnly)) {
+      if (!out[id]) { out[id] = text; failures.delete(id); console.error(`kept original ${id} (rewrite failed)`); }
     }
   }
 
