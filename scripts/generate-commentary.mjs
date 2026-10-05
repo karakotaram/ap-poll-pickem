@@ -235,14 +235,15 @@ HARD RULES:
 - Respect venueNote exactly. Never claim home-field advantage at a neutral site.
 - Do not talk about "the race", "the leaderboard", "swings", or who is gaining on whom. You were not given standings and any such claim will be thrown away. Write about THIS GAME and the two draft picks in it.
 - You do NOT know the standings. Never say anyone leads, trails, is ahead, is behind, is winning, or is collecting the pot. The standings table is rendered below you; it is not your subject.
-- Never predict a final score, declare a winner, or call anything decided or near-certain. BANNED: "almost a certainty", "no room for surprise", "sits safely", "collects the pot", "before the season even starts". A spread is a market opinion, not a result. BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
+- Never predict a final score, declare a winner, or call anything decided or near-certain. BANNED: "almost a certainty", "no room for surprise", "sits safely", "collects the pot", "before the season even starts". BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
 - Refer to owners by the exact names above.
 - A team's nickname and its name are the SAME team — Notre Dame is the Fighting Irish, Ole Miss is the Rebels. Never use both in one sentence, and never write a team as though it were playing itself ("Notre Dame fails to dominate the Irish" is nonsense). Picking one name per sentence is safest.
 - EXACTLY 2 or 3 sentences per game. Never one. 55 words max.
 - Do not use the construction "X, while Y" in more than one blurb.
 - Every blurb must open differently from the others.
 
-THESE FIVE MISTAKES GOT BLURBS THROWN AWAY IN RECENT RUNS. Do not repeat them:
+THESE SIX MISTAKES GOT BLURBS THROWN AWAY IN RECENT RUNS. Do not repeat them:
+- "Texas favored by eight and a half is the market's opinion, not a result" — never explain what a betting line is or is not. Everyone reading knows a spread is not a final score; "only a prediction", "guarantees nothing", "nothing is decided until they play" are the same empty sentence. Every sentence must say something specific about this game and these owners.
 - "nothing he watches this weekend can cost him anything" — you are given ONE game. Never describe what an owner risks or gains in any other game, or across a weekend. Confine every claim to this matchup.
 - "nobody in the pool has any reason to want the upset" — you cannot know what other owners want. Never write about anyone who does not own a team in THIS game.
 - "neither owner gains anything here" — false whenever a ranked team can climb. Only a team already at No.1 has no upside; everyone else can move up a tier.
@@ -547,9 +548,30 @@ function unitProblem(blurb) {
   return null;
 }
 
+/* Telling the reader what a betting line is. "Texas favored by eight and a
+   half is the market's opinion, not a result" got published — nobody reading
+   a pick'em column needs to be told a spread is not a final score. The prompt
+   itself used to carry "a spread is a market opinion, not a result", which is
+   where the model got it. */
+const TRUISM = [
+  /\bnot (?:a|the) (?:result|final score|outcome|guarantee)\b/i,
+  /\b(?:only|just|merely|simply) (?:an? )?(?:opinion|prediction|estimate|guess|projection|forecast)\b/i,
+  /\b(?:guarantees|decides|settles|proves) nothing\b/i,
+  /\bnothing is (?:decided|settled|guaranteed)\b/i,
+  /\bgames? (?:still )?(?:has|have) to be played\b/i,
+  /\bwhy they play the games?\b/i,
+];
+
+function truismProblem(blurb) {
+  const t = TRUISM.find(re => re.test(blurb));
+  return t ? `explains what a betting line is instead of saying anything (${t.source})` : null;
+}
+
 function validate(blurb, facts) {
   const sub = substanceProblem(blurb);
   if (sub) return sub;
+  const tru = truismProblem(blurb);
+  if (tru) return tru;
   const nick = nicknameProblem(blurb, facts);
   if (nick) return nick;
   const dir = directionProblem(blurb, facts);
@@ -596,6 +618,8 @@ Mark ok=false if the blurb states anything the facts do not support. Specificall
 - predicting a winner or a final score as settled fact
 
 Also mark ok=false if the writing is broken English: a garbled or mangled idiom ("rolls the night" instead of "rolls the dice"), a phrase that does not parse, a word that clearly is not the one meant, or a sentence a fluent speaker would not write.
+
+Also mark ok=false for a sentence that only tells the reader what a betting line is or is not ("the market's opinion, not a result", "only a prediction", "guarantees nothing"). That is filler, not commentary.
 
 Do NOT mark ok=false for opinion, sarcasm, insults, bluntness or informal tone — rudeness is intended and is not an error. Judge only factual support and whether the English is coherent.
 
