@@ -4,10 +4,10 @@ name: Poll watch
 # Every run asks the same question — is there a poll we haven't processed? —
 # and exits quietly when the answer is no, so extra firings cost nothing.
 #
-# When a new poll IS up: write the column first, then build and send the
-# email, so the email reuses the column and the page and the email never say
-# two different things about the same game. Only after a real send does the
-# marker advance; a failed run is retried by the next cron.
+# When a new poll IS up: write the site's column for the new week, then
+# build and send the email (standings plus a short entry per player). Only
+# after a real send does the marker advance; a failed run is retried by the
+# next cron.
 #
 # The schedule is deliberately dense because GitHub runs cron at low
 # priority and fires this repo's slots HOURS late — observed drift through
@@ -61,8 +61,8 @@ jobs:
         if: steps.gate.outputs.new == 'true'
         run: npm ci
 
-      # A bad column costs nothing: the email falls back per game to its
-      # built-in line, same as the page.
+      # A bad column costs nothing: the page falls back per game to its
+      # built-in line, and the email doesn't use the column at all.
       - name: Generate commentary
         if: steps.gate.outputs.new == 'true'
         continue-on-error: true

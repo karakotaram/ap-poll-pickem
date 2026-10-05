@@ -61,27 +61,26 @@ TV, venue). Each game scores:
   one, scaled by volatility so it only fires when the line says it's live
 
 The commentary underneath is generated from those same facts — ranks, records,
-the line, who owns what, and what the scoring table says a tier slip costs. It
+the line, who owns what, and how each team moved in the poll. It
 switches to a result summary once a game goes final. No prose is hand-written,
 so it never goes stale, and nothing in it is invented.
 
 ### Preview prose
 
 The card already displays both ranks, both point totals, both owners and the
-line, so the preview text does not restate any of it. It says three things, each
-only when there is something to say:
+line, so the preview text does not restate any of it. It says up to three
+things, each only when there is something to say:
 
 - **The shape of the exposure** — points split across two owners, or all of it
   sitting with one of them while the other has nothing to lose.
 - **What the board thinks**, as a reading rather than a repeat of the number:
   the board cannot separate them, inside one score, only the upset moves the
   pool. A mid-range line says nothing worth adding, so it says nothing.
-- **What a slip costs**, as points rather than a band description — "a tier slip
-  costs Chris 5 and Jim 2" instead of naming the band and letting the reader do
-  the subtraction.
+- **A team on the edge of the poll** — receiving votes, or at No. 25, the last
+  scoring slot.
 
-No. 25 is excluded from that arithmetic on purpose: below it is "receiving
-votes", which still pays the same 2, so there is no honest delta to quote.
+Previews leave the scoring table out: no "a tier slip costs Chris 5"
+arithmetic. Who has points riding on a game is enough.
 
 ### Result prose
 
@@ -109,8 +108,8 @@ otherwise inverts the owner's exposure.
 
 ## The column (Anthropic)
 
-The preview under each upcoming matchup is written by **Claude Opus 5**
-(`claude-opus-5`) at build time, never in the browser. A GitHub Action runs
+The preview under each upcoming matchup is written by **Claude Opus 5.5**
+(`claude-opus-5-5`) at build time, never in the browser. A GitHub Action runs
 `scripts/generate-commentary.mjs` as soon as the new AP poll lands (the
 **Poll watch** workflow below) and again Friday once the lines have firmed
 up; it pulls the poll and the slate, ranks the games by the impact model
@@ -121,6 +120,46 @@ failed validation — so a bad run costs nothing.
 
 The ESPN game context sits above the column either way: that part is fact, and
 is not written by a model.
+
+Each preview is three or four sentences in the same plain register as the
+weekly email's player entries: who has points riding on the game, how the two
+teams match up, and what to watch — usually
+whether a team that just moved in the poll can hold the spot. Each team's facts
+carry its move in this week's poll, pre-phrased ("moved up from No.25 to No.14
+in this week's poll") so the model copies a direction instead of working one
+out.
+
+### Team stats
+
+The matchup sentence uses where each team ranks nationally in points scored
+and allowed per game. The model gets these as ready-made phrases —
+`"Texas's 55th-ranked scoring offense"` — and must copy them word for word. A
+rank attached to the wrong team, or to offense instead of defense, would pass
+the number check because the number itself is real; a fixed phrase is
+something code can check. `statProblem()` strips every supplied phrase out of
+the blurb and rejects it if anything left still puts an ordinal next to
+"offense" or "defense", and the audit pass is told to look for misattributed
+ranks too.
+
+The same ranks also produce a plain line written without the model, e.g.
+*"Texas's 9th-ranked scoring offense takes on Oklahoma's 120th-ranked scoring
+defense. The other way, Oklahoma's offense ranks 64th and Texas's defense
+12th."* It goes into `commentary.json` under `teams`, and the page shows it
+under the built-in text only when the model's preview for that game was
+rejected.
+
+The data is one request for the whole FBS:
+
+    https://site.web.api.espn.com/apis/common/v3/sports/football/
+      college-football/statistics/byteam?group=80&season=<year>&seasontype=2
+
+ESPN files points per game under the `passing` category (it repeats team
+totals in every category); the `Own` split is offense and `Opponent` is what
+the team allowed. Ranks are computed in the script, with ties sharing a rank,
+rather than taken from ESPN's rank strings, whose direction for the `Opponent`
+split isn't documented. A team needs two games played before it gets a rank,
+and an FCS opponent has no FBS numbers, so that game gets a sentence about the
+FBS side only.
 
 **The API key never reaches the browser.** This repo and the site are public — a
 key in client-side JS would be scraped in hours. It lives in GitHub Actions
@@ -134,13 +173,10 @@ secrets and is only ever read inside CI.
 
     DRY_RUN=1 node scripts/generate-commentary.mjs
 
-Prints the model, the system prompt and the exact facts payload. Override the
-model with `ANTHROPIC_MODEL=...`.
+Prints the model, the system prompt, the exact facts payload and the team
+lines. Override the model with `ANTHROPIC_MODEL=...`.
 
-The same column is reused in the weekly email, so the page and the email never
-say two different things about the same game. Poll watch writes the column
-first and sends the email right after for that reason — a column written for
-last week's slate is discarded rather than shown.
+A column written for last week's slate is discarded rather than shown.
 
 ### Notes on the Anthropic port
 
@@ -148,11 +184,15 @@ last week's slate is discarded rather than shown.
   `client.messages.parse`) replace JSON mode and the hand-rolled brace scraper
   the Groq version needed. Blurbs come back as a typed array rather than prose
   we have to find a JSON object inside.
-- **No temperature.** It is not a parameter on this model family, so the
-  variety that `temperature: 0.85` used to provide now comes entirely from the
-  per-game required opening angles. The audit pass likewise can't be pinned to
-  temperature 0.
-- **Thinking is on by default** on Opus 5, so it is not configured explicitly.
+- **No temperature.** It is not a parameter on this model family; the prompt
+  asks for every preview to open differently instead. The audit pass likewise
+  can't be pinned to temperature 0.
+- **Thinking is always on** on Opus 5.5. Effort defaults to `medium` there (one
+  level below Opus 5), so it is pinned to `high` explicitly.
+- **Refusal fallback.** Calls go through `client.beta.messages.parse` with the
+  server-side fallback (`fallbacks: "default"`): if the model declines, the API
+  reruns the request on a fallback model in the same call instead of failing
+  the week's run. The log line names the model that actually answered.
 - Both calls report their token usage to the CI log, so cost is visible per run.
 - **American spelling is enforced mechanically**, not just requested. The old
   prompt was itself written in British English, which is where "favoured" came
@@ -233,19 +273,21 @@ has to pass both the deterministic pass and the audit after being repaired.
 Nothing checks whether a blurb is *legible*, only whether it is supported. "Karan
 has twenty and a tier above him" was accurate — Texas at No.4 is worth 20 and the
 only tier above is No.1 at 25 — and still needed explaining, because a bare tier
-comparison reads as a deficit when it means headroom. The prompt now requires the
-point value to travel with any mention of a tier.
+comparison reads as a deficit when it means headroom. Previews now leave tiers
+out entirely: the prompt bans them, the facts no longer carry the tier table,
+and `tierProblem()` rejects any blurb that mentions a tier, a band, or what one
+pays.
 
 Expect most of 6 blurbs to survive. A dropped blurb costs nothing, a published
 falsehood would.
 
 ### Model notes
 
-`claude-opus-5` is the default. The guardrails below are not model-specific and
-stay in place whatever is used — they were written against a weaker model and
-every one of them earned its place by catching something real, so none were
-removed on the port. Whether Opus 5 trips them as often is an open question:
-the honest answer after the switch is that it has not been measured yet.
+`claude-opus-5-5` is the default. The guardrails above are not model-specific
+and stay in place whatever is used — they were written against a weaker model
+and every one of them earned its place by catching something real, so none
+were removed on the port. How often Opus 5.5 trips them has not been measured
+yet.
 
 Do not point this at a model with web search enabled — it would break the
 only-supplied-facts guarantee the whole validation stack rests on.
@@ -336,25 +378,48 @@ tab waits its turn rather than spending a request nobody is looking at.
 
 ## Weekly email
 
-`scripts/weekly-email.mjs` builds a message with the standings, two or three
-sentences on what moved, and the games that matter next week. It **writes
-`email.html` and `email-subject.txt` and sends nothing** — delivery is the
-workflow's job, so the provider can change without touching the generator.
+`scripts/weekly-email.mjs` builds a message with the standings table and then
+a short entry for each player, in standings order. It **writes `email.html`
+and `email-subject.txt` and sends nothing** — delivery is the workflow's job,
+so the provider can change without touching the generator.
 
     DRY_RUN=1 node scripts/weekly-email.mjs     # prints a plain-text preview too
 
-Every sentence is assembled from the poll and the schedule, the same rule the
-page follows: nothing written by a model, nothing invented, and a win defends a
-ranking rather than earning points.
+An entry reads like:
+
+> **1. Karan** — Gained 3 points this week: Missouri climbed from No. 25 to
+> No. 14 (+8), LSU climbed from No. 11 to No. 10 (+5) and Florida slid from
+> No. 8 to No. 16 (-10). Has led since Week 3. Will see if Missouri can hold
+> on to its jump to No. 14 when it hosts Merc's Texas A&M as a 3.5-point
+> favorite.
+
+Three sentences, each assembled from the poll, the poll history and the
+schedule — nothing written by a model, nothing invented, and a win defends a
+ranking rather than earning points:
+
+- **The week.** Net change, then every team move behind it with its own
+  number, because the two differ: a net of +3 can be +8, +5 and -10. Moves in
+  the direction of the net come first. When nothing crossed a scoring tier,
+  the biggest move inside one is named instead (two spots or more).
+- **The place.** Standings are recomputed for every poll this season, so the
+  entry can say "has led since Week 3", "has been 6th since Week 5", "up from
+  4th to 2nd, a season high" or "takes over first from Murph". Season highs
+  and lows are only called once there are three polls to compare.
+- **The game to watch.** One of the player's games this week, picked by the
+  points the team carries scaled by how close the line is (the same volatility
+  curve as the page's impact model), with a bump for a team that just moved
+  four or more spots or entered or left the poll, and for an unranked team
+  facing a ranked one. Another player's team on the other side counts extra
+  only when it carries points, since only then does the game move two totals.
+  The line is read from ESPN's `details` string ("MIZ -3.5"), which names the
+  favorite, and turned into "as a 3.5-point favorite" from the team's side.
+
+The email no longer carries game previews; those live on the site.
 
 Notes:
 
-- **"What moved" quotes two numbers per player**, their net change and the
-  biggest single team move behind it, because those differ. Oklahoma sliding a
-  tier cost Chris 5 while his net was 3; saying only "gave back 3, with
-  Oklahoma slipping" reads as though that move cost 3.
-- **Ties share the sentence.** When two players post the same change they are
-  named together rather than one being picked arbitrarily.
+- **Ties show as `T-3.`** on the entry, and a move into a tie reads "to a share
+  of 3rd".
 - **The body is ASCII**, punctuation included, and the script exits non-zero if
   a literal non-ASCII character reaches it. A raw em-dash renders as `â€"` in
   any client that guesses the charset.
@@ -385,7 +450,7 @@ never queue-drifts; use it to send immediately.
 Every run starts with `scripts/poll-gate.mjs`, which compares the latest poll
 ESPN has against the marker in `.github/poll-state.json` and stands down
 unless there is a poll we haven't processed. When there is one, the run
-generates the commentary, commits it, builds the email, sends over Gmail
+generates the commentary for the site, commits it, builds the email, sends over Gmail
 SMTP, and only then advances the marker — so a failed run is retried by the
 next cron rather than lost. The extra firings all hit the gate and exit,
 which is what makes the generous schedule safe.

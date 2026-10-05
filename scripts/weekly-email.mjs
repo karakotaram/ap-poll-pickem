@@ -7,8 +7,11 @@
  *
  *   DRY_RUN=1 node scripts/weekly-email.mjs     # write + print, send nothing
  *
- * Every sentence is assembled from the poll and the schedule. Nothing is
- * written by a model and nothing is invented — same rule as the page.
+ * After the standings, one short entry per player: the week's change and
+ * what drove it, how long they have held their place, and the game of theirs
+ * worth watching next. Every sentence is assembled from the poll, the poll
+ * history and the schedule. Nothing is written by a model and nothing is
+ * invented.
  * Points come from AP position: a win defends a ranking, it never earns
  * points, and nothing here says otherwise.
  */
@@ -18,7 +21,6 @@ const DRY_RUN = process.env.DRY_RUN === '1';   // this script never sends; the f
 
 const RANK_API = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football/seasons';
 const SB_API   = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard';
-const N_GAMES  = 3;
 
 const TIERS = [[1,1,25],[2,6,20],[7,10,15],[11,15,10],[16,20,5],[21,24,3],[25,25,2]];
 const pointsForRank = r => (TIERS.find(t => r >= t[0] && r <= t[1]) || [,,0])[2];
@@ -29,7 +31,10 @@ const jget = async u => {
   if (!r.ok) throw new Error(`${r.status} ${u}`);
   return r.json();
 };
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// Also turns non-ASCII into numeric entities: the body must stay ASCII (see
+// the check at the bottom), and ESPN spells some team names with accents.
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
+                          .replace(/[^\x00-\x7f]/gu, c => `&#${c.codePointAt(0)};`);
 const plural = n => (n === 1 ? '' : 's');
 
 /* ---------- roster (single source of truth: index.html) ---------- */
@@ -93,74 +98,115 @@ const wasBy = {};
 if (WAS) WAS.forEach(r => wasBy[r.name] = r);
 
 /* ---------- what actually moved ---------- */
+const ordinal = n => {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+const signed = n => (n > 0 ? `+${n}` : `${n}`);
+const andList = xs => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+// A team move that changed its points, written as a past-tense clause.
 const teamMove = id => {
   const a = PM?.get(id), b = SM.get(id);
   const ap = a?.pts || 0, bp = b?.pts || 0;
   if (ap === bp) return null;
   let how;
-  if (a?.rank && b?.rank)      how = `from No. ${a.rank} to No. ${b.rank}`;
-  else if (b?.rank && !a?.rank) how = a?.rv ? `into the poll at No. ${b.rank}` : `entering the poll at No. ${b.rank}`;
-  else if (a?.rank && !b?.rank) how = b?.rv ? `out of the poll and down to receiving votes` : `out of the poll entirely`;
-  else if (b?.rv && !a?.rv)     how = `into the top three receiving votes`;
-  else                          how = `out of the top three receiving votes`;
+  if (a?.rank && b?.rank) how = `${b.rank < a.rank ? 'climbed' : 'slid'} from No. ${a.rank} to No. ${b.rank}`;
+  else if (b?.rank)       how = `entered the poll at No. ${b.rank}`;
+  else if (a?.rank)       how = b?.rv ? `dropped out of the poll to receiving votes` : `dropped out of the poll`;
+  else if (b?.rv)         how = `moved into the top three receiving votes`;
+  else                    how = `slipped out of the top three receiving votes`;
   return { id, delta: bp - ap, how };
 };
 const moves = [...new Set(ROSTER.flatMap(p => p.picks))].map(teamMove).filter(Boolean);
+
+/* Spots moved in the poll whether or not a scoring tier was crossed — Missouri
+   going from No. 22 to No. 14 is news even in a week it changes nobody's
+   total. Entering or leaving the poll always counts as big. */
+const BIG_MOVE = 4;
+const rankMove = id => {
+  if (!PM) return null;
+  const a = PM.get(id)?.rank ?? null, b = SM.get(id)?.rank ?? null;
+  if (a == null && b == null) return null;
+  if (a == null) return { up: true,  big: true, from: null, to: b };
+  if (b == null) return { up: false, big: true, from: a, to: null };
+  if (a === b) return null;
+  return { up: b < a, big: Math.abs(a - b) >= BIG_MOVE, from: a, to: b, spots: Math.abs(a - b) };
+};
 
 const playerDelta = name => {
   const p = ROSTER.find(x => x.name === name);
   return p.picks.reduce((a, id) => a + ((SM.get(id)?.pts || 0) - (PM?.get(id)?.pts || 0)), 0);
 };
+// Biggest first, but moves in the direction of the net come before the ones
+// that went against it: "gained 3: Missouri climbed..., Florida slid...".
 const drivers = name => {
-  const p = ROSTER.find(x => x.name === name);
-  return moves.filter(m => p.picks.includes(m.id)).sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta));
+  const p = ROSTER.find(x => x.name === name), net = Math.sign(playerDelta(name));
+  const against = m => (net && Math.sign(m.delta) !== net ? 1 : 0);
+  return moves.filter(m => p.picks.includes(m.id))
+              .sort((a,b) => against(a) - against(b) || Math.abs(b.delta) - Math.abs(a.delta));
 };
 
-/* Two or three sentences on the standings, each only when it has something to
-   say. Written from the numbers above, not about them. */
-function changeText() {
-  if (!WAS) return `First poll of the season, so there is nothing to compare against yet. ` +
-                   `<b>${esc(NOW[0].name)}</b> opens on top with ${NOW[0].points}.`;
-
-  const out = [];
-  const lead = NOW[0], oldLead = WAS[0];
-  const tiedTop = NOW.filter(r => r.points === lead.points);
-  const gap = NOW.find(r => r.points < lead.points);
-  const margin = gap ? lead.points - gap.points : 0;
-
-  if (tiedTop.length > 1)
-    out.push(`<b>${tiedTop.map(r => esc(r.name)).join('</b> and <b>')}</b> are tied at the top on ${lead.points}.`);
-  else if (oldLead.name !== lead.name)
-    out.push(`<b>${esc(lead.name)}</b> has taken the lead from <b>${esc(oldLead.name)}</b>, ${lead.points} to ${wasBy[lead.name] ? NOW.find(r => r.name === oldLead.name).points : oldLead.points}.`);
-  else
-    out.push(`<b>${esc(lead.name)}</b> still leads on ${lead.points}` +
-             (margin ? `, ${margin} clear of <b>${esc(gap.name)}</b>.` : `.`));
-
-  const byDelta = ROSTER.map(p => ({ name: p.name, d: playerDelta(p.name) })).sort((a,b) => b.d - a.d);
-  const signed = n => (n > 0 ? `+${n}` : `${n}`);
-  const names = list => list.length > 1
-    ? `<b>${list.slice(0,-1).map(x => esc(x.name)).join('</b>, <b>')}</b> and <b>${esc(list[list.length-1].name)}</b>`
-    : `<b>${esc(list[0].name)}</b>`;
-  // whoever shares the extreme shares the sentence; naming one of two players
-  // who both moved -3 just picks arbitrarily
-  const tiedAt = v => byDelta.filter(x => x.d === v);
-  const bestDriver = list => list.flatMap(x => drivers(x.name))
-                                 .sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
-
-  const up = tiedAt(byDelta[0].d);
-  if (up[0].d > 0) {
-    const d = bestDriver(up);
-    out.push(`${names(up)} gained the most, +${up[0].d}${up.length > 1 ? ' each' : ''}` +
-             (d ? `, led by ${esc(tname(d.id))} ${d.how} (${signed(d.delta)}).` : `.`));
+/* ---------- one short entry per player ----------
+   Three sentences, each assembled from the poll, the poll history and the
+   schedule: the week's change and what drove it, how long they have held
+   their place, and the one game of theirs worth watching next. Nothing is
+   predicted and a win is never said to earn points. Sentences have no
+   subject ("Gained 5 points...") because the entry opens with the name. */
+function weekText(r) {
+  const p = ROSTER.find(x => x.name === r.name);
+  if (!WAS) {
+    const best = p.picks.map(id => ({ id, s: SM.get(id) })).filter(x => x.s?.pts)
+                        .sort((a, b) => b.s.pts - a.s.pts)[0];
+    return `Opens the season with ${r.points}` + (best
+      ? `, the most from ${esc(tname(best.id))} at ${best.s.rank ? `No. ${best.s.rank}` : 'receiving votes'} (${best.s.pts}).`
+      : `.`);
   }
-  const down = tiedAt(byDelta[byDelta.length - 1].d);
-  if (down[0].d < 0) {
-    const d = bestDriver(down);
-    out.push(`${names(down)} gave back ${-down[0].d}${down.length > 1 ? ' apiece' : ''}` +
-             (d ? `, with ${esc(tname(d.id))} ${d.how} (${signed(d.delta)}).` : `.`));
+  const d = playerDelta(r.name), ms = drivers(r.name);
+  const named = ms.slice(0, 3).map(m => `${esc(tname(m.id))} ${m.how} (${signed(m.delta)})`);
+  const rest = ms.length - named.length;
+  const why = named.length ? `: ${andList(named)}${rest ? `, plus ${rest} other move${plural(rest)}` : ''}` : '';
+  if (d > 0) return `Gained ${d} point${plural(d)} this week${why}.`;
+  if (d < 0) return `Lost ${-d} point${plural(-d)} this week${why}.`;
+  if (named.length) return `Even on the week${why}.`;
+  // Nothing crossed a tier. Say what moved inside one, if anything did.
+  const inside = p.picks.map(id => ({ id, m: rankMove(id) })).filter(x => x.m?.spots >= 2)
+                        .sort((a, b) => b.m.spots - a.m.spots)[0];
+  return inside
+    ? `No change in points; ${esc(tname(inside.id))} ${inside.m.up ? 'moved up' : 'slipped'} from No. ${inside.m.from} ` +
+      `to No. ${inside.m.to} without crossing a scoring tier.`
+    : `No change in points this week.`;
+}
+
+// Standings after every poll this season, for "has led since Week 2".
+const HIST = polls.map(p => ({
+  label: p.label,
+  by: Object.fromEntries(standings(scoreMap(p)).map(x => [x.name, x])),
+}));
+const pollName = l => (/^preseason$/i.test(l) ? 'the preseason poll' : l);
+const placeName = n => (n === 1 ? 'first' : ordinal(n));
+const isTied = r => NOW.filter(x => x.place === r.place).length > 1;
+
+function placeText(r) {
+  if (!WAS) return '';
+  const now = r.place, was = wasBy[r.name].place;
+  if (now !== was) {
+    if (now === 1 && !isTied(r)) {
+      const old = WAS.filter(x => x.place === 1).map(x => `<b>${esc(x.name)}</b>`);
+      return `Takes over first from ${andList(old)}.`;
+    }
+    // A season high or low only means something once there are a few polls.
+    const earlier = HIST.slice(0, -1).map(h => h.by[r.name].place);
+    const note = earlier.length < 2 ? ''
+               : now < Math.min(...earlier) ? ', a season high'
+               : now > Math.max(...earlier) ? ', a season low' : '';
+    return `${now < was ? 'Up' : 'Down'} from ${ordinal(was)} to ${isTied(r) ? 'a share of ' : ''}${placeName(now)}${note}.`;
   }
-  if (out.length === 1) out.push(`No one's total moved &mdash; the poll shuffled without crossing a scoring tier.`);
-  return out.join(' ');
+  let i = HIST.length - 1;
+  while (i > 0 && HIST[i - 1].by[r.name].place === now) i--;
+  const span = i === 0 ? 'in every poll this season' : `since ${pollName(HIST[i].label)}`;
+  if (now === 1) return isTied(r) ? `Has been on top ${span}.` : `Has led ${span}.`;
+  return `Has been ${placeName(now)} ${span}.`;
 }
 
 /* ---------- the week ahead ----------
@@ -186,91 +232,82 @@ async function upcomingScoreboard() {
 const sb = await upcomingScoreboard();
 const week = sb.week?.number ?? null;
 
-const games = (sb.events || []).map(e => {
-  const c = e.competitions?.[0]; if (!c || c.competitors?.length !== 2) return null;
-  const side = ha => {
-    const t = c.competitors.find(x => x.homeAway === ha) || c.competitors[0];
-    const id = t.team?.id, sc = SM.get(id) || {};
-    return { id, name: t.team?.location || '', rank: sc.rank ?? null, rv: sc.rv ?? null,
-             points: sc.pts || 0, owner: OWNER[id] || null };
-  };
-  const away = side('away'), home = side('home');
-  const owned = [away, home].filter(s => s.owner);
-  if (!owned.length) return null;
-  const od = c.odds?.[0] || {};
-  const sp = od.spread == null ? null : Math.abs(od.spread);
-  const atRisk = owned.reduce((a,b) => a + b.points, 0);
-  const owners = new Set(owned.map(s => s.owner));
-  const h2h = owned.length === 2 && owners.size === 2;
-  const vol = sp == null ? 1.0 : 0.25 + 1.75 * Math.exp(-sp / 9);
-  const upset = owned.some(s => !s.points) && [away, home].some(s => s.rank) ? 8 * vol : 0;
-  return {
-    impact: atRisk * vol * (h2h ? 1.8 : 1) + upset,
-    id: String(e.id || ''),
-    away, home, owned, h2h, atRisk,
-    kickoff: e.date, timeValid: c.timeValid !== false,
-    line: od.details || null, tv: c.broadcasts?.[0]?.names?.[0] || null,
-    state: c.status?.type?.state || 'pre',
-  };
-}).filter(Boolean)
-  .filter(g => g.state === 'pre')            // an email about games already played is useless
-  .sort((a,b) => b.impact - a.impact)
-  .slice(0, N_GAMES);
-
-const rankTag = s => s.rank ? `No. ${s.rank} ` : s.rv ? `ARV ` : '';
-// the email has no colour swatches to lean on, so name the owner inline
-const teamLabel = s => `${rankTag(s)}${s.name}${s.owner ? ` (${s.owner})` : ''}`;
-const kickText = g => {
-  const d = new Date(g.kickoff);
-  if (isNaN(d)) return '';
-  const opt = { weekday:'short', month:'numeric', day:'numeric', timeZone:'America/New_York' };
-  if (!g.timeValid) return d.toLocaleDateString('en-US', opt) + ' · time TBD';
-  return d.toLocaleString('en-US', { ...opt, hour:'numeric', minute:'2-digit' }) + ' ET';
+/* The line from one team's side: negative means that team is favored. Read
+   off ESPN's "details" string ("MIZ -3.5"), which names the favorite, so the
+   sign never depends on remembering which side ESPN quotes from. */
+const lineFor = (details, abbr) => {
+  if (!details) return null;
+  if (/^\s*(even|pk|pick)/i.test(details)) return 0;
+  const m = /^\s*([A-Za-z&.'\- ]+?)\s*-\s*([\d.]+)\s*$/.exec(details);
+  if (!m) return null;
+  const n = parseFloat(m[2]);
+  return m[1].trim().toUpperCase() === String(abbr || '').toUpperCase() ? -n : n;
 };
 
-/* The site's column, reused verbatim so the email and the page never say two
-   different things about the same game. Same freshness rules the page applies:
-   written for the week on screen, and under 8 days old. Falls back per game to
-   the built-in line, so a rejected blurb costs the email nothing. */
-let COLUMN = null;
-try {
-  const c = JSON.parse(await readFile(new URL('../commentary.json', import.meta.url), 'utf8'));
-  const ageDays = (Date.now() - new Date(c.generated).getTime()) / 864e5;
-  if (c && c.games && typeof c.games === 'object' && ageDays >= 0 && ageDays < 8) COLUMN = c;
-} catch { /* no column today; the built-in line covers it */ }
-const columnUsable = () => !!(COLUMN && (week == null || COLUMN.week === week));
-
-/* Model text is escaped first, then typographic characters become entities —
-   the body is required to be ASCII and a stray curly apostrophe would other-
-   wise fail the build. Only known roster names are re-emphasised afterwards,
-   so nothing the model writes can inject markup. */
-function columnHtml(text) {
-  let h = esc(String(text))
-    .replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
-    .replace(/\u2014/g, '&mdash;').replace(/\u2013/g, '&ndash;')
-    .replace(/\u2026/g, '...').replace(/\u00a0/g, ' ');
-  ROSTER.forEach(p => {
-    const n = p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    h = h.replace(new RegExp('(^|[^A-Za-z<])(' + n + ')\\b', 'g'), '$1<b>$2</b>');
-  });
-  return h;
-}
-
-/* Why this game matters, in one line — the fallback when no blurb survived. */
-function whyText(g) {
-  const byRisk = g.owned.slice().sort((a,b) => b.points - a.points);
-  if (g.h2h) {
-    const [hi, lo] = byRisk;
-    return lo.points
-      ? `${g.atRisk} pool points on the field, split ${hi.points}&ndash;${lo.points}.`
-      : `Every point here is <b>${esc(hi.owner)}</b>'s &mdash; ${esc(hi.name)} carries ${hi.points}, ${esc(lo.name)} nothing.`;
+// Each drafted team's game this week, seen from that team's side.
+const NEXT = new Map();
+for (const e of sb.events || []) {
+  const c = e.competitions?.[0];
+  if (!c || c.competitors?.length !== 2) continue;
+  if ((c.status?.type?.state || 'pre') !== 'pre') continue;   // already played or underway
+  for (const t of c.competitors) {
+    const id = String(t.team?.id || '');
+    if (!OWNER[id]) continue;
+    const o = c.competitors.find(x => x !== t), oid = String(o.team?.id || '');
+    NEXT.set(id, {
+      where: c.neutralSite ? 'neutral' : t.homeAway,
+      opp: { id: oid, name: o.team?.location || tname(oid), owner: OWNER[oid] || null, rank: SM.get(oid)?.rank ?? null },
+      spread: lineFor(c.odds?.[0]?.details, t.team?.abbreviation),
+    });
   }
-  const x = byRisk[0];
-  const foe = [g.away, g.home].find(s => s !== x);
-  return x.points
-    ? `<b>${esc(x.owner)}</b> has ${x.points} riding on ${esc(x.name)}${foe?.rank ? ` against No. ${foe.rank}` : ''}.`
-    : `${esc(x.name)} is off the board for <b>${esc(x.owner)}</b>${foe?.rank ? `; No. ${foe.rank} ${esc(foe.name)} is the measuring stick` : ''}.`;
 }
+
+const lineText = sp => {
+  if (sp == null) return '';
+  if (sp === 0) return ` in a pick'em`;
+  const n = String(Number.isInteger(sp) ? Math.abs(sp) : Math.abs(sp).toFixed(1));
+  // "an 8.5-point", "an 11-point", "an 18-point"
+  const art = /^(8|11(?!\d)|18(?!\d))/.test(n) ? 'an' : 'a';
+  return ` as ${art} ${n}-point ${sp < 0 ? 'favorite' : 'underdog'}`;
+};
+
+/* Which of a player's games to point at. Same instincts as the impact model
+   the page uses — points carried, scaled up when the line is close — plus a
+   bump for a team that just moved a lot (can it hold the jump?) and for an
+   unranked team getting a ranked opponent. Another player's team on the
+   other side counts extra when it carries points: that game moves two
+   totals. */
+function lookAhead(r) {
+  const p = ROSTER.find(x => x.name === r.name);
+  const opts = p.picks.filter(id => NEXT.has(String(id))).map(id => {
+    const g = NEXT.get(String(id)), pts = SM.get(id)?.pts || 0, mv = rankMove(id);
+    const vol = g.spread == null ? 1 : 0.25 + 1.75 * Math.exp(-Math.abs(g.spread) / 9);
+    const rival = !!(g.opp.owner && g.opp.owner !== r.name);
+    const both = rival && (SM.get(g.opp.id)?.pts || 0) > 0;
+    const shot = SM.get(id)?.rank == null && g.opp.rank != null;
+    return { id, g, pts, mv, rival, shot,
+             score: pts * vol * (both ? 1.5 : 1) + (mv?.big ? 8 * vol : 0) + (shot ? 6 * vol : 0) };
+  }).sort((a, b) => b.score - a.score);
+  if (!opts.length) return `All six teams are off this week.`;
+
+  const { id, g, pts, mv, rival, shot } = opts[0];
+  const T = esc(tname(id));
+  const opp = `${rival ? `<b>${esc(g.opp.owner)}</b>'s ` : ''}${g.opp.rank ? `No. ${g.opp.rank} ` : ''}${esc(g.opp.name)}`;
+  const game = `${g.where === 'home' ? 'hosts' : g.where === 'away' ? 'visits' : 'plays'} ${opp}` +
+               `${g.where === 'neutral' ? ' at a neutral site' : ''}${lineText(g.spread)}`;
+
+  if (mv?.big && mv.up)   return mv.from == null
+    ? `Will see if ${T} can stay in the poll when it ${game}.`
+    : `Will see if ${T} can hold on to its jump to No. ${mv.to} when it ${game}.`;
+  if (mv?.big && mv.to)   return `${T} tries to stop the slide when it ${game}.`;
+  if (mv?.big)            return `${T} tries to get back into the poll when it ${game}.`;
+  if (rival)              return `Head to head this week: ${T} ${game}.`;
+  if (shot)               return `Unranked ${T} ${game}.`;
+  if (g.opp.rank)         return `Biggest test: ${T}${pts ? `, worth ${pts},` : ''} ${game}.`;
+  return `${T}${pts ? `, worth ${pts},` : ''} ${game}.`;
+}
+
+const entryText = r => [weekText(r), placeText(r), lookAhead(r)].filter(Boolean).join(' ');
 
 /* ---------- render ---------- */
 const P = '#111', MUT = '#6b7280', LINE = '#e5e7eb', BG = '#ffffff', ALT = '#f9fafb';
@@ -300,18 +337,10 @@ const rows = NOW.map((r,i) => `
     <td style="padding:9px 12px;text-align:right;font-variant-numeric:tabular-nums">${moveCell(r.name)}</td>
   </tr>`).join('');
 
-const gameBlocks = games.length ? games.map(g => `
-  <div style="border:1px solid ${LINE};border-radius:10px;padding:13px 15px;margin:0 0 10px">
-    <div style="font-weight:600;font-size:15px;color:${P}">
-      ${esc(teamLabel(g.away))} at ${esc(teamLabel(g.home))}
-    </div>
-    <div style="font-size:12.5px;color:${MUT};margin:4px 0 7px">
-      ${esc(kickText(g))}${g.tv ? ' &middot; ' + esc(g.tv) : ''}${g.line ? ' &middot; ' + esc(g.line) : ''}
-    </div>
-    <div style="font-size:13.5px;color:#374151;line-height:1.5">${
-      (columnUsable() && COLUMN.games[g.id]) ? columnHtml(COLUMN.games[g.id]) : whyText(g)}</div>
-  </div>`).join('')
-  : `<p style="color:${MUT}">No pool-relevant games on the board yet.</p>`;
+const entries = NOW.map(r => `
+  <p style="font-size:14px;line-height:1.55;margin:0 0 12px">
+    <b>${isTied(r) ? 'T-' : ''}${r.place}. ${esc(r.name)}</b> &mdash; ${entryText(r)}
+  </p>`).join('');
 
 const leaders = NOW.filter(r => r.place === 1);
 const subject = `AP Poll Pick'em - ${poll.label}: ` +
@@ -345,11 +374,8 @@ const body = `
     Chg is points against the ${prev ? esc(prev.label) : 'previous'} poll. Move is places gained or lost.
   </div>
 
-  <h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:${MUT};margin:0 0 9px">What moved</h2>
-  <p style="font-size:14px;line-height:1.6;margin:0 0 22px">${changeText()}</p>
-
-  <h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:${MUT};margin:0 0 9px">Games that matter</h2>
-  ${gameBlocks}
+  <h2 style="font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:${MUT};margin:0 0 11px">The field</h2>
+  ${entries}
 
   <div style="margin-top:22px;padding-top:14px;border-top:1px solid ${LINE};font-size:12px;color:${MUT}">
     <a href="https://karakotaram.github.io/ap-poll-pickem/" style="color:#2563eb;text-decoration:none">Full standings, payouts and every drafted team &rarr;</a>
@@ -378,11 +404,6 @@ console.log(`poll: ${poll.label}${prev ? `  (change vs ${prev.label})` : '  (fir
 console.log(`\nstandings:`);
 NOW.forEach(r => console.log(`  ${String(r.place).padStart(2)}. ${r.name.padEnd(7)} ${String(r.points).padStart(3)}` +
   `  ${plain(chgCell(r.name)).padStart(3)}  ${plain(moveCell(r.name))}`));
-console.log(`\nwhat moved:\n  ${plain(changeText())}`);
-console.log(`\ngames (${games.length}):`);
-games.forEach(g => {
-  console.log(`  ${teamLabel(g.away)} at ${teamLabel(g.home)}  —  ${kickText(g)}${g.line ? ' · ' + g.line : ''}`);
-  const b = (columnUsable() && COLUMN.games[g.id]) ? COLUMN.games[g.id] : null;
-  console.log(`    ${b ? '[column] ' : '[built-in] '}${plain(b ? columnHtml(b) : whyText(g))}`);
-});
+console.log(`\nthe field:`);
+NOW.forEach(r => console.log(`  ${isTied(r) ? 'T-' : ''}${r.place}. ${r.name} - ${plain(entryText(r))}`));
 console.log(`\nwrote email.html (${body.length} bytes)${DRY_RUN ? ' — DRY_RUN, nothing sent' : ''}`);

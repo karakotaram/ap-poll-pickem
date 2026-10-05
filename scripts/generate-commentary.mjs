@@ -11,11 +11,11 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 
 const API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL   = process.env.ANTHROPIC_MODEL || 'claude-opus-5';
+const MODEL   = process.env.ANTHROPIC_MODEL || 'claude-opus-5-5';
 const N_GAMES = 6;   // page shows 3; extra cover it picking a slightly different set
 
 const DRY_RUN = process.env.DRY_RUN === '1';   // build the payload, skip the API call
@@ -44,11 +44,6 @@ const SB_API   = 'https://site.api.espn.com/apis/site/v2/sports/football/college
 
 const TIERS = [[1,1,25],[2,6,20],[7,10,15],[11,15,10],[16,20,5],[21,24,3],[25,25,2]];
 const pointsForRank = r => (TIERS.find(t => r >= t[0] && r <= t[1]) || [,,0])[2];
-const tierOf = r => TIERS.find(t => r >= t[0] && r <= t[1]);
-const nextDownPts = r => {
-  const i = TIERS.findIndex(t => r >= t[0] && r <= t[1]);
-  return i < 0 ? 0 : (i + 1 < TIERS.length ? TIERS[i+1][2] : 2);
-};
 
 const jget = async (u) => {
   const r = await fetch(u, { headers: { 'user-agent': 'ap-poll-pickem/1.0' } });
@@ -91,6 +86,21 @@ const poll = polls[polls.length - 1];
 
 const SM = new Map();
 poll.ranks.forEach(r => SM.set(r.id, { pts: pointsForRank(r.rank), rank: r.rank }));
+
+/* How each team moved in this week's poll, pre-phrased so the model copies a
+   direction rather than working one out. "Moved up" rather than "climbed",
+   because "climb" is on directionProblem()'s underdog list below. */
+const prevPoll = polls.length > 1 ? polls[polls.length - 2] : null;
+const PREV_RANK = new Map((prevPoll?.ranks || []).map(r => [r.id, r.rank]));
+const pollMove = (id, rank) => {
+  if (!prevPoll) return null;
+  const was = PREV_RANK.get(id) ?? null;
+  if (was == null && rank == null) return null;
+  if (was == null) return `entered the poll this week at No.${rank}`;
+  if (rank == null) return `dropped out of the poll this week; it was No.${was}`;
+  if (was === rank) return null;
+  return `moved ${rank < was ? 'up' : 'down'} from No.${was} to No.${rank} in this week's poll`;
+};
 poll.others.slice(0, 3).forEach((o, i) => { if (!SM.has(o.id)) SM.set(o.id, { pts: 2, rank: null, rv: i+1 }); });
 
 /* ---------- this week's games, ranked by pool impact ----------
@@ -126,7 +136,8 @@ const games = (sb.events || []).map(e => {
     return { id, name: t.team?.location || '', abbr: t.team?.abbreviation || '',
              nickname: t.team?.name || '',
              record: t.records?.[0]?.summary || '', rank: sc.rank ?? null, rv: sc.rv ?? null,
-             points: sc.pts || 0, owner: OWNER[id] || null };
+             points: sc.pts || 0, owner: OWNER[id] || null,
+             pollMove: pollMove(id, sc.rank ?? null) };
   };
   const away = side('away'), home = side('home');
   const owned = [away, home].filter(s => s.owner);
@@ -139,11 +150,6 @@ const games = (sb.events || []).map(e => {
   const h2h = owned.length === 2 && owners.size === 2;
   const vol = sp == null ? 1.0 : 0.25 + 1.75 * Math.exp(-sp / 9);
   const upset = owned.some(s => !s.points) && [away, home].some(s => s.rank) ? 8 * vol : 0;
-
-  const tierNotes = owned.filter(s => s.rank).map(s => {
-    const t = tierOf(s.rank);
-    return `${s.name} is No.${s.rank}, in the ${t[0]}-${t[1]} band worth ${t[2]} pts to ${s.owner}; one tier down is ${nextDownPts(s.rank)} pts`;
-  });
 
   return {
     impact: atRisk * vol * (h2h ? 1.8 : 1) + upset,
@@ -160,7 +166,6 @@ const games = (sb.events || []).map(e => {
       poolPointsAtStake: atRisk,
       headToHead: h2h,
       sameOwnerBothSides: owned.length === 2 && owners.size === 1,
-      tierNotes,
     },
   };
 }).filter(Boolean)
@@ -177,6 +182,84 @@ const STANDINGS = ROSTER.map(p => ({
 let pl = 1;
 STANDINGS.forEach((r, i) => { if (i && r.points !== STANDINGS[i-1].points) pl = i + 1; r.place = pl; });
 
+/* ---------- how the teams match up ----------
+   Where each side ranks nationally in points scored and allowed per game.
+   The model gets these as ready-made phrases ("Texas's 9th-ranked scoring
+   offense") and must copy them verbatim: a rank pinned on the wrong team, or
+   on offense instead of defense, would pass every number check because the
+   number itself is real, and a fixed phrase is something statProblem() can
+   check. The same ranks also make a plain team line (teamLine below) that the
+   page shows only when the model's blurb for a game was rejected.
+
+   One request covers the whole FBS. ESPN files points per game under the
+   "passing" category (it repeats team totals in each one); the "Own" split is
+   the team's offense and "Opponent" is what it allowed. Ranks are computed
+   here, with ties sharing a rank, rather than read from ESPN's own rank
+   strings, whose direction for the Opponent split isn't documented. */
+const STATS_API = 'https://site.web.api.espn.com/apis/common/v3/sports/football/college-football/statistics/byteam';
+const MIN_GAMES = 2;   // a national rank off one game is noise
+
+async function scoringRanks() {
+  const d = await jget(`${STATS_API}?region=us&lang=en&contentorigin=espn&limit=200&group=80&season=${season}&seasontype=2`);
+  const names = Object.fromEntries((d.categories || []).map(c => [c.name, c.names || []]));
+  const val = (t, split, cat, stat) => {
+    const c = (t.categories || []).find(x => x.name === cat && (x.displayName || '').startsWith(split));
+    const i = (names[cat] || []).indexOf(stat);
+    return c && i >= 0 ? c.values?.[i] : null;
+  };
+  const rows = (d.teams || []).map(t => ({
+    id: String(t.team?.id || ''),
+    gp: val(t, 'Own', 'general', 'gamesPlayed'),
+    off: val(t, 'Own', 'passing', 'totalPointsPerGame'),
+    def: val(t, 'Opponent', 'passing', 'totalPointsPerGame'),
+  })).filter(r => r.id && typeof r.off === 'number' && typeof r.def === 'number');
+  const rankOf = (r, better) => 1 + rows.filter(o => better(o, r)).length;
+  return new Map(rows.map(r => [r.id, {
+    gp: r.gp || 0,
+    off: rankOf(r, (o, x) => o.off > x.off),   // more points scored is better
+    def: rankOf(r, (o, x) => o.def < x.def),   // fewer points allowed is better
+  }]));
+}
+
+const ordinal = n => {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+const rankedAs = n => (n === 1 ? 'top-ranked' : `${ordinal(n)}-ranked`);
+
+function teamLine(f, R) {
+  const usable = s => { const r = R.get(String(s.id)); return r && r.gp >= MIN_GAMES ? r : null; };
+  const a = usable(f.away), h = usable(f.home);
+  if (a && h) {
+    // Lead with the more lopsided pairing; the other direction follows.
+    const [[o1, so1, d1, sd1], [o2, so2, d2, sd2]] = [[f.away, a, f.home, h], [f.home, h, f.away, a]]
+      .sort((x, y) => Math.abs(y[1].off - y[3].def) - Math.abs(x[1].off - x[3].def));
+    return `${o1.name}'s ${rankedAs(so1.off)} scoring offense takes on ${d1.name}'s ${rankedAs(sd1.def)} scoring defense. ` +
+           `The other way, ${o2.name}'s offense ranks ${ordinal(so2.off)} and ${d2.name}'s defense ${ordinal(sd2.def)}.`;
+  }
+  // One side has no FBS numbers: an FCS opponent, or too few games played.
+  const [s, r] = a ? [f.away, a] : h ? [f.home, h] : [null, null];
+  return s ? `${s.name} ranks ${ordinal(r.off)} in the FBS in scoring offense and ${ordinal(r.def)} in scoring defense.` : null;
+}
+
+let RANKS = new Map();
+try {
+  RANKS = await scoringRanks();
+} catch (e) {
+  console.error('team stats unavailable, previews go out without them:', e.message);
+}
+const TEAM_LINES = {};
+games.forEach(({ facts: f }) => {
+  for (const s of [f.away, f.home]) {
+    const r = RANKS.get(String(s.id));
+    s.statPhrases = r && r.gp >= MIN_GAMES
+      ? [`${s.name}'s ${rankedAs(r.off)} scoring offense`, `${s.name}'s ${rankedAs(r.def)} scoring defense`]
+      : [];
+  }
+  const t = teamLine(f, RANKS);
+  if (t) TEAM_LINES[f.id] = t;
+});
+
 // Spell the venue situation out; a raw boolean gets skimmed past.
 games.forEach(({ facts: f }) => {
   f.venueNote = f.neutralSite
@@ -185,16 +268,9 @@ games.forEach(({ facts: f }) => {
 });
 
 /* ---------- ask Claude ---------- */
-const ANGLES = [
-  'lead with a verdict on somebody\'s draft pick, using the line as evidence rather than as information',
-  'lead with the asymmetry — name who is playing with house money and who actually has something to lose',
-  'lead by naming the owner who looks worst if this goes wrong',
-  'lead with what one owner is exposed to that the other simply is not',
-  'lead with the distance between what somebody thought they drafted and what they actually have',
-  'lead with a flat, unhedged read on one owner\'s weekend',
-];
+const SYSTEM = `You write the preview that sits under each matchup card for an eight-person college football pick'em pool. The same people get a weekly email with an entry per player, and the previews should read the same way: plain, specific, built from facts, with a light touch. An entry looks like this (the register, not the content):
 
-const SYSTEM = `You write a short weekly column for an eight-person college football pick'em pool.
+  "Gained 5 points this week: Oregon moved up from No. 15 to No. 9 (+5). Has been 2nd since Week 4. Will see if Oregon can hold on to its jump when it visits Ty's No. 12 Ole Miss as a 2.5-point underdog."
 
 THE POOL: ${ROSTER.map(p => p.name).join(', ')}. Each drafted six teams before the season and scores off the AP Top 25 weekly: 25 pts for No.1, 20 for Nos.2-6, 15 for 7-10, 10 for 11-15, 5 for 16-20, 3 for 21-24, 2 for No.25, 2 for a top-3 also-receiving-votes team. $200 each, $1,600 pot, paid on the final poll before the playoffs (40%) and after (60%).
 
@@ -204,29 +280,29 @@ WHAT THE LINE MEANS — a line like "ND -20.5" means Notre Dame is FAVORED and m
 
 HOW SCORING ACTUALLY WORKS — you have been getting this wrong. Points come from where a team sits in the AP poll, NOT from winning a game. Winning a game adds nothing; it defends a team's existing ranking. Losing subtracts nothing directly; it risks the team sliding in next week's poll, and the slide is where points are lost. So never write that someone "gains 15 points" by covering, or "collects" points by winning. The correct framing is exposure: the owner of a highly ranked team has points to LOSE, and the owner of an unranked team has nothing to lose and something to gain only if their team climbs into the poll.
 
-CRITICAL — YOU ARE NOT A SCOREBOARD. The card directly above your text already shows the reader: both teams' ranks, both owners, both point values, the total at stake, the betting line, the TV network, and the venue. Restating ANY of those as information is wasted words. "Doak Campbell Stadium hosts the clash, televised on ESPN" tells the reader nothing they cannot see. "Murph's Louisville is No.24, worth 3 points" is worse.
+WHAT EACH PREVIEW COVERS — three or four sentences, 80 words at most:
+1. The stakes. Who has points riding on this game and who has nothing to lose. A team's pollMove, when it has one, is often the best way in: a team that just moved up has a new spot to defend.
+2. The matchup. How the two teams compare, using their statPhrases — at least one sentence, covering both teams when both have them.
+3. What to watch, only if there is something worth saying: whether a team that just moved can hold it, or whether the line agrees with the stat ranks. Leave it out rather than pad.
 
-Use those facts as the PREMISE of a verdict or a joke, never as the content. The reader has the numbers; you supply the opinion about them.
+STAT RANKS — COPY THE PHRASES EXACTLY. Each team with stats has statPhrases such as "Texas's 55th-ranked scoring offense". Whenever you cite where a team ranks on offense or defense, copy one of its phrases word for word, apostrophe included, and build the sentence around it. Never write a stat rank any other way ("Texas's offense ranks 55th", "the 55th-best offense"), never move a number from one phrase to another, and never give a rank for a team whose statPhrases list is empty. These are national ranks in points scored and allowed per game among FBS teams. You may say one unit ranks well above or below another; do not invent anything else about how a team plays.
 
-Weak (recitation):  "SMU -2.5 puts Jim's five-point draft on the line while Merc's Florida State carries zero pool value."
-Strong (a take):    "The market has Jim's third-rounder as a road favorite over a team Merc apparently drafted on purpose. Two and a half points is not much of a moat."
+DON'T RECITE THE CARD. The card above your text already shows both teams' ranks, both owners, both point values, the total at stake, the line, the TV network and the venue. Bring those up only to say what they mean: who has something to lose, who has nothing to lose, whether the line agrees with the stat ranks. "Murph's Louisville is No.24, worth 3 points" tells the reader nothing new. Never name the TV network or the stadium.
 
-Never name the TV network or the stadium unless it is the actual joke.
-
-VOICE: a beat writer who has covered this pool for years and is not especially impressed by any of it. Plain declarative sentences. Understated and precise. State what is actually at stake and let it land on its own. The dryness comes from restraint, not from jokes.
+VOICE: plain declarative sentences, specific and a little dry. Say what is at stake and how the teams compare, and let it land on its own. No verdicts on anyone's drafting.
 
 AMERICAN ENGLISH. Write "favored", not "favoured"; "defense", not "defence". This is an American college football pool.
 
 WRITE PLAINLY — THIS IS THE MOST IMPORTANT INSTRUCTION. Use no idioms, no set phrases, no slang, no wordplay, no metaphors, no team nicknames. Specifically avoid: "house money", "rolls the dice", "hanging by a thread", "coin flip", "moat", "juggernaut", "cushion", "on the line", "grab", "haul", "payday". If a colorful phrase occurs to you, write the plain version of it instead. A flat accurate sentence is always better than a vivid one you get slightly wrong.
 
-NAME THE NUMBER WHENEVER YOU MENTION A TIER. "a tier above him", "the band below", "one tier from a smaller number" are unreadable on their own: the reader cannot tell whether that tier is worth 2 points or 25, and "a tier above him" reads as a deficit when you mean headroom. Always attach the value. Write "twenty, with twenty-five one rung up" or "five points, and the band below pays three" — never the bare comparison.
+NO TIER TALK. Do not mention scoring tiers or bands, or what the next spot up or down in the poll would pay. Say who has points riding on the game, and leave the scoring table out of it.
 
 BANNED: hype cliches ("all eyes on", "must-win", "buckle up", "for the ages"), exclamation marks, emoji, rhetorical questions, and opening two blurbs the same way.
 
 STYLE SAMPLES — match this register, never reuse the content:
-- "Ty has fifteen points in this game and Murph has three. The six-and-a-half point line suggests that gap is about right, which leaves Ty with far more to protect than Murph has to gain."
-- "The market makes SMU a narrow favorite on the road. Jim has five points that depend on that judgement being correct, and Merc has nothing at risk either way."
-- "Notre Dame is favored by twenty and a half. Mike owns twenty points in a game his team is expected to win comfortably, so the only real interest is in what happens if it does not."
+- "Jim has fifteen points riding on SMU; Merc has nothing at risk with Florida State. SMU's 14th-ranked scoring offense takes on Florida State's 92nd-ranked scoring defense, and Florida State's 61st-ranked scoring offense meets SMU's 30th-ranked scoring defense. SMU is favored by two and a half on the road, which fits the ranks."
+- "Ty and Mike each have twenty points here, so a loss puts one of those twenties at risk in next week's poll. Notre Dame's 4th-ranked scoring defense is the best unit on the field, and it faces Georgia's 22nd-ranked scoring offense."
+- "Kansas State moved up from No.21 to No.16 this week, so Karan's five points now depend on keeping it there. Kansas State's 9th-ranked scoring defense meets Baylor's 80th-ranked scoring offense. Baylor is still favored by a field goal at home, so the market is less sure of Kansas State than the voters are."
 
 HARD RULES:
 - Use ONLY the facts in the JSON provided. You have no other knowledge of these teams.
@@ -238,7 +314,7 @@ HARD RULES:
 - Never predict a final score, declare a winner, or call anything decided or near-certain. BANNED: "almost a certainty", "no room for surprise", "sits safely", "collects the pot", "before the season even starts". BANNED outright: "lock", "inevitable", "safe bet", "cash cow", "free lunch", "sure thing", "cannot lose", "will win", "should win", "hands X the win".
 - Refer to owners by the exact names above.
 - A team's nickname and its name are the SAME team — Notre Dame is the Fighting Irish, Ole Miss is the Rebels. Never use both in one sentence, and never write a team as though it were playing itself ("Notre Dame fails to dominate the Irish" is nonsense). Picking one name per sentence is safest.
-- EXACTLY 2 or 3 sentences per game. Never one. 55 words max.
+- 3 or 4 sentences per game. Never fewer than 3. 80 words max.
 - Do not use the construction "X, while Y" in more than one blurb.
 - Every blurb must open differently from the others.
 
@@ -246,15 +322,14 @@ THESE SIX MISTAKES GOT BLURBS THROWN AWAY IN RECENT RUNS. Do not repeat them:
 - "Texas favored by eight and a half is the market's opinion, not a result" — never explain what a betting line is or is not. Everyone reading knows a spread is not a final score; "only a prediction", "guarantees nothing", "nothing is decided until they play" are the same empty sentence. Every sentence must say something specific about this game and these owners.
 - "nothing he watches this weekend can cost him anything" — you are given ONE game. Never describe what an owner risks or gains in any other game, or across a weekend. Confine every claim to this matchup.
 - "nobody in the pool has any reason to want the upset" — you cannot know what other owners want. Never write about anyone who does not own a team in THIS game.
-- "neither owner gains anything here" — false whenever a ranked team can climb. Only a team already at No.1 has no upside; everyone else can move up a tier.
+- "neither owner gains anything here" — false whenever a ranked team can climb. Only a team already at No.1 has no upside; everyone else can move up.
 - Attaching "exposed", "at risk", "most to lose", "toughest" or "vulnerable" to an owner whose team in this game is worth 0. That owner risks nothing here. Name the owner who actually holds the points instead, and do not use risk words about the other one even to deny them.
 - Using a team's name and its nickname in the same sentence. Pick one and stay with it.`;
 
 const USER =
-  `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first.\n\n` +
-  `Each game is assigned a REQUIRED opening angle. Obey it — it exists so the blurbs don't all read the same:\n` +
-  games.map((g, i) => `  ${g.facts.id} (${g.facts.matchup}) -> ${ANGLES[i % ANGLES.length]}`).join('\n') +
-  `\n\n${JSON.stringify(games.map(g => g.facts), null, 1)}`;
+  `AP poll in effect: ${poll.label}. Week ${week ?? '?'} games, highest pool impact first. ` +
+  `Write one preview per game, and open each one differently from the others.\n\n` +
+  JSON.stringify(games.map(g => g.facts), null, 1);
 
 /* Structured outputs, so the reply is a typed object rather than prose we have
    to scrape a JSON object out of. Keyed as an array because the ids are the
@@ -262,7 +337,7 @@ const USER =
 const BlurbSet = z.object({
   games: z.array(z.object({
     id: z.string().describe('the game id exactly as given in the facts'),
-    blurb: z.string().describe('two or three sentences about that game'),
+    blurb: z.string().describe('three or four sentences about that game'),
   })).describe('one entry per game supplied, in the same order'),
 });
 
@@ -274,21 +349,31 @@ const AuditSet = z.object({
   })),
 });
 
-// Thinking is on by default on Opus 5, and temperature is no longer a knob on
-// this model family — variety comes from the per-game angles above instead.
+/* Thinking is always on for Opus 5.5 and temperature is not a knob on this
+   model family. Effort defaults to medium on 5.5, one level below Opus 5, so
+   it is pinned to high to keep what the column was tuned against.
+
+   Server-side fallback ("default" routes by refusal category): if the model
+   declines, the API reruns the same request on a fallback model inside the
+   same call, rather than the run failing. A refusal on a football column is
+   unlikely, but it would otherwise cost the whole week's previews. */
 async function callClaude(system, user, format) {
-  const res = await client.messages.parse({
+  const res = await client.beta.messages.parse({
     model: MODEL,
     max_tokens: 16000,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
     system,
     messages: [{ role: 'user', content: user }],
-    output_config: { format: zodOutputFormat(format) },
+    output_config: { effort: 'high', format: betaZodOutputFormat(format) },
   });
   if (res.stop_reason === 'refusal')
     throw new Error(`model declined: ${res.stop_details?.category ?? 'unknown'}`);
   if (!res.parsed_output)
     throw new Error(`structured output did not parse (stop_reason=${res.stop_reason})`);
-  console.error(`  ${MODEL}: in=${res.usage.input_tokens} out=${res.usage.output_tokens}`);
+  const fellBack = (res.usage.iterations ?? []).some(x => x.type === 'fallback_message');
+  console.error(`  ${res.model}${fellBack ? ` (fallback from ${MODEL})` : ''}: ` +
+                `in=${res.usage.input_tokens} out=${res.usage.output_tokens}`);
   return res.parsed_output;
 }
 
@@ -297,6 +382,8 @@ if (DRY_RUN) {
   console.log('\n--- SYSTEM PROMPT ---\n' + SYSTEM);
   console.log('\n--- FACTS (' + games.length + ' games) ---');
   console.log(JSON.stringify(games.map(g => g.facts), null, 1));
+  console.log('\n--- TEAM LINES ---');
+  games.forEach(({ facts: f }) => console.log(`  ${f.id} ${f.matchup}\n    ${TEAM_LINES[f.id] || '(none)'}`));
   console.log('\nDRY RUN — no API call made, commentary.json untouched.');
   process.exit(0);
 }
@@ -340,11 +427,15 @@ const NUMWORDS = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:
   ten:10, eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16,
   seventeen:17, eighteen:18, nineteen:19, twenty:20, thirty:30, forty:40, fifty:50,
   sixty:60, seventy:70, eighty:80, ninety:90,
-  first:1, second:2, third:3, fourth:4, fifth:5, sixth:6, seventh:7, eighth:8, ninth:9, tenth:10 };
+  first:1, second:2, third:3, fourth:4, fifth:5, sixth:6, seventh:7, eighth:8, ninth:9, tenth:10,
+  eleventh:11, twelfth:12, thirteenth:13, fourteenth:14, fifteenth:15, sixteenth:16, seventeenth:17,
+  eighteenth:18, nineteenth:19, twentieth:20, thirtieth:30, fortieth:40, fiftieth:50, sixtieth:60,
+  seventieth:70, eightieth:80, ninetieth:90 };
 
 const TENS = { twenty:20, thirty:30, forty:40, fifty:50, sixty:60, seventy:70, eighty:80, ninety:90 };
-const ONES = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9 };
-const COMPOUND = /\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[\s-]+(one|two|three|four|five|six|seven|eight|nine)\b/g;
+const ONES = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9,
+  first:1, second:2, third:3, fourth:4, fifth:5, sixth:6, seventh:7, eighth:8, ninth:9 };
+const COMPOUND = /\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[\s-]+(one|two|three|four|five|six|seven|eight|nine|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth)\b/g;
 
 function numbersIn(text) {
   // "twenty-five" is 25, not 20 and 5. Without collapsing compounds first, a
@@ -567,11 +658,40 @@ function truismProblem(blurb) {
   return t ? `explains what a betting line is instead of saying anything (${t.source})` : null;
 }
 
+/* Stat ranks have to come from the supplied phrases, copied verbatim. Strip
+   every phrase out of the blurb: anything left that still puts an ordinal
+   next to "offense" or "defense" was written freehand, and freehand is how
+   one team's defense rank ends up on the other team's offense. The number
+   check cannot see that — the number is real, only its owner is wrong. */
+const UNIT_WORD = /\b(?:offen[sc]e|defen[sc]e)s?\b/i;
+const RANK_WORD = new RegExp('\\b\\d+(?:st|nd|rd|th)\\b|-ranked\\b|\\b(?:' +
+  Object.keys(NUMWORDS).filter(w => /(st|nd|rd|th)$/.test(w)).join('|') + ')\\b', 'i');
+
+function statProblem(blurb, facts) {
+  let rest = blurb.replace(/[\u2018\u2019]/g, "'").replace(/[\u2010\u2011]/g, '-');
+  for (const ph of [...(facts.away.statPhrases || []), ...(facts.home.statPhrases || [])])
+    rest = rest.split(ph).join(' ');
+  for (const sentence of rest.split(/(?<=[.!?])\s+/))
+    if (UNIT_WORD.test(sentence) && RANK_WORD.test(sentence))
+      return 'gives an offense or defense rank without copying one of the supplied statPhrases word for word';
+  return null;
+}
+
+/* The previews leave the scoring table out: who has points riding on a game,
+   not what the next band down pays. Banned in the prompt and checked here,
+   because a prompt ban alone holds about five times in six. */
+const TIER_TALK = /\b(?:tiers?|bands?|rungs?|pays)\b/i;
+const tierProblem = blurb => (TIER_TALK.test(blurb) ? 'talks about scoring tiers or what a tier pays' : null);
+
 function validate(blurb, facts) {
   const sub = substanceProblem(blurb);
   if (sub) return sub;
   const tru = truismProblem(blurb);
   if (tru) return tru;
+  const tier = tierProblem(blurb);
+  if (tier) return tier;
+  const stat = statProblem(blurb, facts);
+  if (stat) return stat;
   const nick = nicknameProblem(blurb, facts);
   if (nick) return nick;
   const dir = directionProblem(blurb, facts);
@@ -616,6 +736,8 @@ Mark ok=false if the blurb states anything the facts do not support. Specificall
 - claiming home-field advantage when neutralSite is true
 - any number, record, statistic, injury, or history not present in the facts
 - predicting a winner or a final score as settled fact
+- a scoring offense or defense rank attached to the wrong team or the wrong unit, or any such rank not copied from that team's statPhrases; a comparison the ranks do not support (calling a 60th-ranked unit the stronger one against a 20th-ranked one)
+- a poll move turned around: pollMove says which way a team moved this week, and saying it fell when it rose (or the reverse) is wrong
 
 Also mark ok=false if the writing is broken English: a garbled or mangled idiom ("rolls the night" instead of "rolls the dice"), a phrase that does not parse, a word that clearly is not the one meant, or a sentence a fluent speaker would not write.
 
@@ -641,7 +763,7 @@ function ingest(items, label) {
     const facts = byId.get(k);
     if (!facts) { console.error(`ignored unknown game id "${k}" — not in this week's slate`); continue; }
     if (typeof item.blurb !== 'string' || !item.blurb.trim()) { failures.set(k, 'empty blurb'); continue; }
-    const spelled = americanize(item.blurb.trim().slice(0, 400));
+    const spelled = americanize(item.blurb.trim().slice(0, 700));
     if (spelled.hits.length) console.error(`respelled ${k}: ${spelled.hits.join(', ')}`);
     const problem = validate(spelled.text, facts);
     if (problem) {
@@ -711,6 +833,7 @@ if (process.env.NO_WRITE === '1') {
   console.log('NO_WRITE — result not published:');
   for (const [id, text] of Object.entries(out)) console.log(`  ${id}: ${text}`);
   console.log(`(${Object.keys(out).length} of ${games.length} survived validation)`);
+  for (const [id, text] of Object.entries(TEAM_LINES)) console.log(`  ${id} team line: ${text}`);
   process.exit(0);
 }
 
@@ -719,6 +842,7 @@ await writeFile(new URL('../commentary.json', import.meta.url), JSON.stringify({
   model: MODEL,
   season, week, poll: poll.label,
   games: out,
+  teams: TEAM_LINES,
 }, null, 2) + '\n');
 
 console.log(`wrote commentary.json — week ${week}, ${Object.keys(out).length} blurbs, model ${MODEL}`);

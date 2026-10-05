@@ -9,7 +9,7 @@ on:
   workflow_dispatch:        # manual run from the Actions tab
     inputs:
       model:
-        description: 'Model id (blank = claude-opus-5)'
+        description: 'Model id (blank = claude-opus-5-5)'
         required: false
         default: ''
       no_write:

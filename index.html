@@ -107,6 +107,7 @@ select:hover,.btn:hover{background:var(--surface-2)}
 .mumeta b{color:var(--ink-2);font-weight:640}
 .mubody{font-size:13px;line-height:1.55;color:var(--ink-2)}
 .mubody em{color:var(--ink);font-style:normal;font-weight:600}
+.mustat{font-size:12px;line-height:1.5;color:var(--muted);margin-top:-4px}
 
 /* ---------- tabs ---------- */
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:22px;overflow-x:auto}
@@ -974,15 +975,11 @@ function favorite(g, a){
   return {side, name: side ? side.name : m[1].trim(), by: +m[2]};
 }
 
-/* What one tier of slippage actually subtracts. No. 25 is excluded: below it
-   sits "receiving votes", which still pays the same 2, so there is no honest
-   delta to quote. */
-const slipCost = s => (s.rank && s.rank < 25) ? s.pts - nextDownPts(s.rank) : 0;
-
 /* Preview prose.
    The card above already shows both ranks, both point totals and both owners,
    so the text does not repeat them — it names the SHAPE of the exposure, what
-   the board thinks, and what a slip costs as a number. Every clause fires only
+   the board thinks, and when a team sits at the very edge of the poll. It
+   leaves the scoring table out: no tier-slip arithmetic. Every clause fires only
    when it has something to add, so two previews rarely share a skeleton.
    Points come from AP position: an upset costs the favorite's owner, it never
    pays the underdog's. */
@@ -1033,22 +1030,11 @@ function previewText(g, a, ctx){
   else if(f && f.by >= 17 && f.side && f.side.owner && dog && dog.owner && !dog.pts)
     out.push('Only the upset moves the pool.');
 
-  // --- the cost of a slip, as points rather than a band description ---
-  const hit = a.owned.filter(s => slipCost(s) > 0);
-  if(hit.length === 2 && slipCost(hit[0]) === slipCost(hit[1]))
-    out.push(`A tier slip costs either of them ${slipCost(hit[0])}.`);
-  else if(hit.length === 2)
-    out.push(`A tier slip costs ${hit.map(s => `<em>${esc(s.owner.name)}</em> ${slipCost(s)}`).join(' and ')}.`);
-  else if(hit.length === 1 && a.owned.length === 1)
-    out.push(`A tier slip costs ${slipCost(hit[0])}.`);          // the lead already named them
-  else if(hit.length === 1)
-    out.push(`A tier slip costs <em>${esc(hit[0].owner.name)}</em> ${slipCost(hit[0])}.`);
-  else{
-    const edge = a.owned.find(s => s.rv || s.rank === 25);
-    if(edge) out.push(edge.rv
-      ? `${esc(edge.name)} is only receiving votes — the ${edge.pts} go first when the poll resets.`
-      : `${esc(edge.name)} is No. 25, the last scoring slot in the poll.`);
-  }
+  // --- a team on the very edge of the poll ---
+  const edge = a.owned.find(s => s.rv || s.rank === 25);
+  if(edge) out.push(edge.rv
+    ? `${esc(edge.name)} is only receiving votes — the ${edge.pts} go first when the poll resets.`
+    : `${esc(edge.name)} is No. 25, the last scoring slot in the poll.`);
   return out.join(' ');
 }
 
@@ -1234,9 +1220,11 @@ function drawMatchups(){
 
     // Finished games always get the factual result line — the column was
     // written before kickoff and would be describing a game that's over.
-    // Finished games always get the factual result line — the column was
-    // written before kickoff and would be describing a game that's over.
     const col = (!done && usableColumn && COLUMN.games[g.id]) ? COLUMN.games[g.id] : null;
+    // The model's preview already covers how the teams match up. When it was
+    // rejected, the built-in text gets the plain stats line from the same CI
+    // run instead, so the card still says something about the teams.
+    const stat = (!done && !col && usableColumn && COLUMN.teams && COLUMN.teams[g.id]) || null;
     const body = done ? resultSentence(g, a)
                : col ? columnHtml(col)
                      : previewText(g, a, {biggest: a.atRisk > 0 && a.atRisk === maxRisk});
@@ -1247,6 +1235,7 @@ function drawMatchups(){
       <div class="muteams">${row(a.sides[0])}${row(a.sides[1])}</div>
       ${meta.length ? `<div class="mumeta">${meta.join('<span style="opacity:.4">·</span>')}</div>` : ''}
       <p class="mubody">${body}</p>
+      ${stat ? `<p class="mustat">${esc(stat)}</p>` : ''}
     </div>`;
   }).join('');
 
