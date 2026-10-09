@@ -1,23 +1,23 @@
 {
-  "generated": "2026-10-05T16:36:52.183Z",
+  "generated": "2026-10-09T20:00:33.372Z",
   "model": "claude-opus-5-5",
   "season": 2026,
   "week": 6,
   "poll": "Week 6",
   "games": {
-    "401856712": "Georgia's top-ranked scoring offense gets Alabama's defense, 51st in points allowed, the widest gap in this game. Ty and John each have 20 points riding on unbeaten teams, and John's Alabama only moved up from No.7 to No.6 this week.",
-    "401856716": "Missouri jumped from No.25 to No.14 this week, and Karan now has 10 points tied to whether that move holds. Missouri's offense, 25th in scoring, faces Texas A&M's 38th-ranked scoring defense. Merc's Texas A&M is 3-2 and would have to enter the poll for him to score.",
-    "401856717": "Texas is No.1 and cannot move higher, so for Karan this game only carries risk. The 8.5-point line leans on Texas's 11th-ranked scoring defense against Oklahoma's 109th-ranked scoring offense, not on Texas's offense, 55th in scoring. Chris has no points on a 2-2 Oklahoma.",
-    "401858481": "Indiana is a 7.5-point road favorite against a Nebraska team that is also 5-0. Indiana's 5th-ranked scoring defense meets a Nebraska offense that ranks 9th in scoring, two strong units. Merc's Indiana slipped from No.6 to No.7 despite its record, and John's Nebraska is not yet worth anything.",
-    "401858485": "Mike owns both teams, and only USC is worth anything to him: 5 points, after a slip from No.18 to No.19. Penn State is favored by 1.5 at home despite a 3-2 record, with a Penn State defense that ranks 24th in points allowed set against USC's 29th-ranked scoring offense.",
-    "401858487": "Murph has 5 points on an Iowa team that already fell from No.14 to No.20 in the latest poll. Iowa's defense, 8th in points allowed, is the best unit on the field and faces Washington's offense, 87th in scoring. Merc's Washington, at 3-2, counts for nothing unless it shows up in next week's poll."
+    "401856712": "Georgia's top-ranked scoring offense visits Alabama's 51st-ranked scoring defense, the largest mismatch between these two unbeaten teams. Even so, Alabama is a 1.5-point favorite at home, a week after moving up from No.7 to No.6. Ty and John each have 20 points riding on this one.",
+    "401856716": "After moving up from No.25 to No.14 in this week's poll, Missouri brings 10 of Karan's points into a home game. Missouri's offense, 26th in scoring, faces a Texas A&M defense that ranks 38th in points allowed. Merc's Texas A&M is 3-2 and unranked, so a win would only give it a chance at entering the poll.",
+    "401856717": "Texas is No.1, so Karan's 25 points have no room to rise here, only to hold or fall. Oklahoma's 111th-ranked scoring offense runs into Texas's defense, 12th in points allowed, at a neutral site. Chris's Oklahoma is 2-2, unranked, and worth nothing to him unless it climbs into the poll.",
+    "401858481": "Both teams are 5-0, and the units are strong on each side: Indiana's 8th-ranked scoring offense meets Nebraska's 16th-ranked scoring defense, and Nebraska's offense, 9th in scoring, faces Indiana's defense, 5th in points allowed. Merc has 15 points on Indiana, which fell from No.6 to No.7. John's Nebraska is unranked despite its record.",
+    "401858485": "This game belongs entirely to Mike, who owns both sides. USC, No.19 after moving down from No.18, carries his 5 points; Penn State is unranked at 3-2 and carries none. The matchup to watch is USC's 87th-ranked scoring defense against a Penn State offense that ranks 62nd in scoring.",
+    "401858487": "Washington, unranked at 3-2, is a 3-point favorite at home against No.20 Iowa. The stat ranks favor Iowa: Iowa's 9th-ranked scoring defense against a Washington offense that ranks 87th in scoring. Murph's 5 points on Iowa come after a drop from No.14 to No.20; Merc has none on Washington."
   },
   "teams": {
-    "401856712": "Georgia's top-ranked scoring offense takes on Alabama's 51st-ranked scoring defense. The other way, Alabama's offense ranks 2nd and Georgia's defense 12th.",
-    "401856716": "Texas A&M's 64th-ranked scoring offense takes on Missouri's 48th-ranked scoring defense. The other way, Missouri's offense ranks 25th and Texas A&M's defense 38th.",
-    "401856717": "Oklahoma's 109th-ranked scoring offense takes on Texas's 11th-ranked scoring defense. The other way, Texas's offense ranks 55th and Oklahoma's defense 24th.",
-    "401858481": "Indiana's 8th-ranked scoring offense takes on Nebraska's 15th-ranked scoring defense. The other way, Nebraska's offense ranks 9th and Indiana's defense 5th.",
-    "401858485": "Penn State's 62nd-ranked scoring offense takes on USC's 89th-ranked scoring defense. The other way, USC's offense ranks 29th and Penn State's defense 24th.",
-    "401858487": "Washington's 87th-ranked scoring offense takes on Iowa's 8th-ranked scoring defense. The other way, Iowa's offense ranks 74th and Washington's defense 37th."
+    "401856712": "Georgia's top-ranked scoring offense takes on Alabama's 51st-ranked scoring defense. The other way, Alabama's offense ranks 2nd and Georgia's defense 13th.",
+    "401856716": "Texas A&M's 64th-ranked scoring offense takes on Missouri's 48th-ranked scoring defense. The other way, Missouri's offense ranks 26th and Texas A&M's defense 38th.",
+    "401856717": "Oklahoma's 111th-ranked scoring offense takes on Texas's 12th-ranked scoring defense. The other way, Texas's offense ranks 55th and Oklahoma's defense 24th.",
+    "401858481": "Indiana's 8th-ranked scoring offense takes on Nebraska's 16th-ranked scoring defense. The other way, Nebraska's offense ranks 9th and Indiana's defense 5th.",
+    "401858485": "Penn State's 62nd-ranked scoring offense takes on USC's 87th-ranked scoring defense. The other way, USC's offense ranks 30th and Penn State's defense 24th.",
+    "401858487": "Washington's 87th-ranked scoring offense takes on Iowa's 9th-ranked scoring defense. The other way, Iowa's offense ranks 74th and Washington's defense 37th."
   }
 }
