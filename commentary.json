@@ -1,23 +1,23 @@
 {
-  "generated": "2026-10-09T20:00:33.372Z",
+  "generated": "2026-10-11T19:32:58.219Z",
   "model": "claude-opus-5-5",
   "season": 2026,
-  "week": 6,
-  "poll": "Week 6",
+  "week": 7,
+  "poll": "Week 7",
   "games": {
-    "401856712": "Georgia's top-ranked scoring offense visits Alabama's 51st-ranked scoring defense, the largest mismatch between these two unbeaten teams. Even so, Alabama is a 1.5-point favorite at home, a week after moving up from No.7 to No.6. Ty and John each have 20 points riding on this one.",
-    "401856716": "After moving up from No.25 to No.14 in this week's poll, Missouri brings 10 of Karan's points into a home game. Missouri's offense, 26th in scoring, faces a Texas A&M defense that ranks 38th in points allowed. Merc's Texas A&M is 3-2 and unranked, so a win would only give it a chance at entering the poll.",
-    "401856717": "Texas is No.1, so Karan's 25 points have no room to rise here, only to hold or fall. Oklahoma's 111th-ranked scoring offense runs into Texas's defense, 12th in points allowed, at a neutral site. Chris's Oklahoma is 2-2, unranked, and worth nothing to him unless it climbs into the poll.",
-    "401858481": "Both teams are 5-0, and the units are strong on each side: Indiana's 8th-ranked scoring offense meets Nebraska's 16th-ranked scoring defense, and Nebraska's offense, 9th in scoring, faces Indiana's defense, 5th in points allowed. Merc has 15 points on Indiana, which fell from No.6 to No.7. John's Nebraska is unranked despite its record.",
-    "401858485": "This game belongs entirely to Mike, who owns both sides. USC, No.19 after moving down from No.18, carries his 5 points; Penn State is unranked at 3-2 and carries none. The matchup to watch is USC's 87th-ranked scoring defense against a Penn State offense that ranks 62nd in scoring.",
-    "401858487": "Washington, unranked at 3-2, is a 3-point favorite at home against No.20 Iowa. The stat ranks favor Iowa: Iowa's 9th-ranked scoring defense against a Washington offense that ranks 87th in scoring. Murph's 5 points on Iowa come after a drop from No.14 to No.20; Merc has none on Washington."
+    "401856721": "Ole Miss is the home favorite by 6, though the stat ranks give a mixed picture: Ole Miss's 108th-ranked scoring defense faces Missouri's offense, 33rd in scoring. Ty has 15 points on Ole Miss to protect. Karan's Missouri edged up from No.14 to No.13 and is worth 10 to him.",
+    "401856723": "John owns both sides, and Alabama carries the larger share of his points, 20 to Tennessee's 10. The telling matchup is Alabama's offense, 3rd in scoring, against a Tennessee defense that ranks 19th in points allowed. Tennessee rose from No.15 to No.14 this week and has a 5-1 record, same as Alabama.",
+    "401856724": "Both of these teams belong to Karan, and both slid this week: Texas fell from No.1 to No.7, and Florida dropped out of the poll after sitting at No.16. Florida's offense, 12th in scoring, is the strongest unit on the field, against a Texas defense that ranks 21st in points allowed. The 15 points here are all on Texas.",
+    "401856809": "Notre Dame moved up from No.3 to No.2 this week and takes its 6-0 record on the road to a 5-0 BYU. BYU's defense, 9th in points allowed, is up against Notre Dame's 4th-ranked scoring offense. Mike has 20 points on Notre Dame to defend; Murph has 15 on BYU.",
+    "401858263": "Merc's Florida State comes in at 3-3 and unranked, so any poll movement for him here would be upward. The other side holds Murph's 20 points: Miami, 5-0, rose from No.4 to No.3 this week and is favored by 21.5 at home. Miami's top-ranked scoring defense faces a Florida State offense that ranks 62nd in scoring.",
+    "401858488": "Indiana's defense, 5th in points allowed, meets Ohio State's 7th-ranked scoring offense, two of the best units on the field. Jim and Merc each have 20 points riding on this, and both teams climbed this week: Ohio State from No.5 to No.4, and Indiana, 6-0, from No.7 to No.5."
   },
   "teams": {
-    "401856712": "Georgia's top-ranked scoring offense takes on Alabama's 51st-ranked scoring defense. The other way, Alabama's offense ranks 2nd and Georgia's defense 13th.",
-    "401856716": "Texas A&M's 64th-ranked scoring offense takes on Missouri's 48th-ranked scoring defense. The other way, Missouri's offense ranks 26th and Texas A&M's defense 38th.",
-    "401856717": "Oklahoma's 111th-ranked scoring offense takes on Texas's 12th-ranked scoring defense. The other way, Texas's offense ranks 55th and Oklahoma's defense 24th.",
-    "401858481": "Indiana's 8th-ranked scoring offense takes on Nebraska's 16th-ranked scoring defense. The other way, Nebraska's offense ranks 9th and Indiana's defense 5th.",
-    "401858485": "Penn State's 62nd-ranked scoring offense takes on USC's 87th-ranked scoring defense. The other way, USC's offense ranks 30th and Penn State's defense 24th.",
-    "401858487": "Washington's 87th-ranked scoring offense takes on Iowa's 9th-ranked scoring defense. The other way, Iowa's offense ranks 74th and Washington's defense 37th."
+    "401856721": "Missouri's 33rd-ranked scoring offense takes on Ole Miss's 108th-ranked scoring defense. The other way, Ole Miss's offense ranks 22nd and Missouri's defense 29th.",
+    "401856723": "Alabama's 3rd-ranked scoring offense takes on Tennessee's 19th-ranked scoring defense. The other way, Tennessee's offense ranks 44th and Alabama's defense 45th.",
+    "401856724": "Texas's 59th-ranked scoring offense takes on Florida's 113th-ranked scoring defense. The other way, Florida's offense ranks 12th and Texas's defense 21st.",
+    "401856809": "BYU's 46th-ranked scoring offense takes on Notre Dame's 4th-ranked scoring defense. The other way, Notre Dame's offense ranks 4th and BYU's defense 9th.",
+    "401858263": "Miami's top-ranked scoring offense takes on Florida State's 83rd-ranked scoring defense. The other way, Florida State's offense ranks 62nd and Miami's defense 1st.",
+    "401858488": "Indiana's 14th-ranked scoring offense takes on Ohio State's 8th-ranked scoring defense. The other way, Ohio State's offense ranks 7th and Indiana's defense 5th."
   }
 }
