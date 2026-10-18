@@ -1,23 +1,23 @@
 {
-  "generated": "2026-10-16T18:38:42.234Z",
+  "generated": "2026-10-18T20:37:39.555Z",
   "model": "claude-opus-5-5",
   "season": 2026,
-  "week": 7,
-  "poll": "Week 7",
+  "week": 8,
+  "poll": "Week 8",
   "games": {
-    "401856721": "The line makes Ole Miss a 5.5-point favorite at home, though Ole Miss's 108th-ranked scoring defense is the lowest-ranked unit on the field. Ty holds 15 points on Ole Miss. Karan has 10 on a Missouri team that just moved up from No.14 to No.13.",
-    "401856723": "Alabama's 3rd-ranked scoring offense is the strongest unit in this game, and it meets Tennessee's defense, 19th in points allowed. John drafted both teams, so his interest is in where each one sits in next week's poll. Alabama carries 20 of his points, and Tennessee, newly up to No.14, carries 10.",
-    "401856724": "Texas fell from No.1 to No.7 this week and Florida dropped out of the poll from No.16, so Karan owns both sides of a game between two teams that just slid. His 15 points are all on Texas, favored by 11.5 at home even with Florida's 12th-ranked scoring offense ranking well above Texas's offense, 59th in scoring.",
-    "401856809": "Mike has 20 points on Notre Dame, which moved up from No.3 to No.2 and comes in unbeaten as a 10.5-point favorite on the road. Murph's BYU is also unbeaten, and this game pits BYU's 8th-ranked scoring defense against a Notre Dame offense that ranks 4th in scoring.",
-    "401858263": "Unbeaten Miami is the only team here with poll points, 20 of them for Murph, after rising to No.3 this week. Miami's top-ranked scoring offense draws a Florida State defense that ranks 85th in points allowed. Merc's Florida State is unranked at 3-3 and would need to enter the poll to earn him anything.",
-    "401858488": "Both teams climbed this week, Ohio State from No.5 to No.4 and unbeaten Indiana from No.7 to No.5, so Jim and Merc each have 20 points to protect. The best pairing on the field is Ohio State's offense, 7th in scoring, against Indiana's 5th-ranked scoring defense."
+    "401856731": "Tennessee climbed from No.14 to No.11, and John now has 10 points tied to it in a road game. The line is close, Tennessee by 1.5, and the two best units on the field meet: Tennessee's defense, 11th in points allowed, against South Carolina's 18th-ranked scoring offense. Merc owns South Carolina, which is 3-3 and carries no points.",
+    "401856732": "Texas is a 3-point favorite at home a week after falling from No.7 to No.19, so the line rates Karan's team above Ty's higher-ranked Ole Miss. Ole Miss's offense, 20th in scoring, meets a Texas defense that ranks 29th in points allowed. Ty has 15 points riding on Ole Miss after its rise from No.9 to No.7.",
+    "401856835": "Nobody in the pool drafted UCF, so Murph is the only owner with a stake in this game. His BYU is 6-0 and went from No.8 to No.2 this week, which gives him 20 points to hold on the road. BYU's 14th-ranked scoring defense is the stronger unit against UCF's offense, 52nd in scoring.",
+    "401856837": "Chris drafted both teams, putting 15 points on unbeaten Utah and 10 on Houston, which jumped from No.20 to No.14. Utah's offense, 8th in scoring, is the best unit on the field, and it faces a Houston defense that ranks 45th in points allowed. Whatever happens, one of his two ranked teams comes out with a loss.",
+    "401858496": "A Michigan offense that ranks 105th in scoring gets Indiana's 4th-ranked scoring defense, the widest gap in this game. Merc holds 20 points on Indiana, which slipped from No.5 to No.6. Jim's Michigan is unranked, so any movement for him here can only be upward.",
+    "401858500": "Favored by 2.5 on the road, USC holds 5 points for Mike following its move from No.19 to No.16. The units line up evenly: a USC offense that ranks 27th in scoring faces Wisconsin's 24th-ranked scoring defense, and Wisconsin's offense, 80th in scoring, faces a USC defense that ranks 80th in points allowed. Ty's Wisconsin is unranked."
   },
   "teams": {
-    "401856721": "Missouri's 33rd-ranked scoring offense takes on Ole Miss's 108th-ranked scoring defense. The other way, Ole Miss's offense ranks 23rd and Missouri's defense 29th.",
-    "401856723": "Alabama's 3rd-ranked scoring offense takes on Tennessee's 19th-ranked scoring defense. The other way, Tennessee's offense ranks 44th and Alabama's defense 45th.",
-    "401856724": "Texas's 59th-ranked scoring offense takes on Florida's 113th-ranked scoring defense. The other way, Florida's offense ranks 12th and Texas's defense 21st.",
-    "401856809": "BYU's 46th-ranked scoring offense takes on Notre Dame's 4th-ranked scoring defense. The other way, Notre Dame's offense ranks 4th and BYU's defense 8th.",
-    "401858263": "Miami's top-ranked scoring offense takes on Florida State's 85th-ranked scoring defense. The other way, Florida State's offense ranks 62nd and Miami's defense 1st.",
-    "401858488": "Indiana's 14th-ranked scoring offense takes on Ohio State's 7th-ranked scoring defense. The other way, Ohio State's offense ranks 7th and Indiana's defense 5th."
+    "401856731": "Tennessee's 42nd-ranked scoring offense takes on South Carolina's 83rd-ranked scoring defense. The other way, South Carolina's offense ranks 18th and Tennessee's defense 11th.",
+    "401856732": "Ole Miss's 20th-ranked scoring offense takes on Texas's 29th-ranked scoring defense. The other way, Texas's offense ranks 64th and Ole Miss's defense 72nd.",
+    "401856835": "UCF's 52nd-ranked scoring offense takes on BYU's 14th-ranked scoring defense. The other way, BYU's offense ranks 40th and UCF's defense 50th.",
+    "401856837": "Utah's 8th-ranked scoring offense takes on Houston's 45th-ranked scoring defense. The other way, Houston's offense ranks 12th and Utah's defense 12th.",
+    "401858496": "Michigan's 105th-ranked scoring offense takes on Indiana's 4th-ranked scoring defense. The other way, Indiana's offense ranks 25th and Michigan's defense 21st.",
+    "401858500": "USC's 27th-ranked scoring offense takes on Wisconsin's 24th-ranked scoring defense. The other way, Wisconsin's offense ranks 80th and USC's defense 80th."
   }
 }
