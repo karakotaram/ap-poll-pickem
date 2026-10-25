@@ -1,23 +1,23 @@
 {
-  "generated": "2026-10-23T18:54:59.467Z",
+  "generated": "2026-10-25T18:24:11.400Z",
   "model": "claude-opus-5-5",
   "season": 2026,
-  "week": 8,
-  "poll": "Week 8",
+  "week": 9,
+  "poll": "Week 9",
   "games": {
-    "401856731": "South Carolina is 3-3 and unranked, yet it is a 2.5-point home favorite over a Tennessee team that just moved up from No.14 to No.11. Tennessee's 10th-ranked scoring defense meets a South Carolina offense that ranks 17th in scoring. John holds all 10 points in this game; Merc's South Carolina starts from zero.",
-    "401856732": "Texas dropped from No.7 to No.19 this week, yet the line still has Texas favored by 3.5 at home against an Ole Miss team that moved up from No.9 to No.7. Ty has 15 points on Ole Miss to protect. Karan's 5 on Texas could grow if Texas works its way back up the poll.",
-    "401856837": "Both teams belong to Chris, and both moved up this week: Houston from No.20 to No.14, and Utah from No.11 to No.10. The strongest unit on the field is a Utah offense that ranks 8th in scoring, and it faces Houston's defense, 45th in points allowed. Utah, 6-0, carries the larger part of his 25.",
-    "401858274": "Miami's top-ranked scoring offense meets the best unit Pittsburgh has, a Pittsburgh defense that ranks 22nd in points allowed. Miami moved up from No.3 to No.1 this week, so for Murph the 25 points here can only go down. John's Pittsburgh is 5-2 and unranked, and a win at the No.1 team would give it a case for the poll.",
-    "401858496": "A Michigan offense that ranks 106th in scoring runs into Indiana's 4th-ranked scoring defense, the widest gap in this game. Merc has 20 points on Indiana, which slipped from No.5 to No.6. Jim's Michigan is unranked at 4-2, so a home win is his opening to get it into the poll.",
-    "401858500": "The line makes USC a 3-point favorite on the road, and the key pairing is a USC offense that ranks 26th in scoring against Wisconsin's 23rd-ranked scoring defense. Mike's USC moved up from No.19 to No.16 and has that spot to hold. Ty has no points on Wisconsin yet, but a 4-2 team that beats a ranked visitor could enter the poll."
+    "401856734": "A Florida defense that ranks 106th in points allowed draws Georgia's 3rd-ranked scoring offense, the largest gap between any two units in this game. Both teams moved up this week, Georgia from No.5 to No.3 for Ty and Florida from No.20 to No.17 for Karan, and they meet at a neutral site.",
+    "401856842": "Texas Tech is a 4.5-point favorite at home, but the stat ranks lean the other way: Arizona's 21st-ranked scoring offense and Arizona's 23rd-ranked scoring defense both rate ahead of Texas Tech's units. Chris watched Texas Tech drop from No.8 to No.13, and Mike's Arizona rose from No.25 to No.22.",
+    "401856848": "Utah is 7-0 and just jumped from No.10 to No.6, which gives Chris 20 points riding on a road trip. Cincinnati has no owner in the pool, and a Cincinnati defense that ranks 95th in points allowed is the weakest unit on the field.",
+    "401858282": "Murph owns the No.1 team, which means Miami cannot rise and any slide comes out of his 25 points. North Carolina is unowned, and Miami is favored by 15.5 with Miami's top-ranked scoring offense facing North Carolina's 40th-ranked scoring defense.",
+    "401858509": "USC fell out of the poll this week after sitting at No.16, so Mike starts this game at zero and can only move up. Jim's Ohio State went the other way, from No.3 to No.2, and brings Ohio State's 4th-ranked scoring defense against a USC offense that ranks 44th in scoring.",
+    "401859185": "At a neutral site, Notre Dame is favored by 30.5, and a Notre Dame defense that ranks 4th in points allowed faces Navy's 64th-ranked scoring offense. Mike's team slipped from No.4 to No.5 this week, so all 20 points here are his. Murph's Navy is 2-5 and unranked, with something to gain only by entering the poll."
   },
   "teams": {
-    "401856731": "Tennessee's 42nd-ranked scoring offense takes on South Carolina's 83rd-ranked scoring defense. The other way, South Carolina's offense ranks 17th and Tennessee's defense 10th.",
-    "401856732": "Ole Miss's 19th-ranked scoring offense takes on Texas's 28th-ranked scoring defense. The other way, Texas's offense ranks 64th and Ole Miss's defense 72nd.",
-    "401856837": "Utah's 8th-ranked scoring offense takes on Houston's 45th-ranked scoring defense. The other way, Houston's offense ranks 12th and Utah's defense 11th.",
-    "401858274": "Pittsburgh's 45th-ranked scoring offense takes on Miami's 7th-ranked scoring defense. The other way, Miami's offense ranks 1st and Pittsburgh's defense 22nd.",
-    "401858496": "Michigan's 106th-ranked scoring offense takes on Indiana's 4th-ranked scoring defense. The other way, Indiana's offense ranks 24th and Michigan's defense 19th.",
-    "401858500": "USC's 26th-ranked scoring offense takes on Wisconsin's 23rd-ranked scoring defense. The other way, Wisconsin's offense ranks 81st and USC's defense 78th."
+    "401856734": "Georgia's 3rd-ranked scoring offense takes on Florida's 106th-ranked scoring defense. The other way, Florida's offense ranks 9th and Georgia's defense 16th.",
+    "401856842": "Arizona's 21st-ranked scoring offense takes on Texas Tech's 36th-ranked scoring defense. The other way, Texas Tech's offense ranks 27th and Arizona's defense 23rd.",
+    "401856848": "Utah's 14th-ranked scoring offense takes on Cincinnati's 95th-ranked scoring defense. The other way, Cincinnati's offense ranks 31st and Utah's defense 9th.",
+    "401858282": "North Carolina's 96th-ranked scoring offense takes on Miami's 11th-ranked scoring defense. The other way, Miami's offense ranks 1st and North Carolina's defense 40th.",
+    "401858509": "Ohio State's 10th-ranked scoring offense takes on USC's 77th-ranked scoring defense. The other way, USC's offense ranks 44th and Ohio State's defense 4th.",
+    "401859185": "Notre Dame's 6th-ranked scoring offense takes on Navy's 108th-ranked scoring defense. The other way, Navy's offense ranks 64th and Notre Dame's defense 4th."
   }
 }
