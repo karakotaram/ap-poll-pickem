@@ -1,23 +1,23 @@
 {
-  "generated": "2026-11-01T19:38:28.931Z",
+  "generated": "2026-11-06T20:43:31.448Z",
   "model": "claude-opus-5-5",
   "season": 2026,
   "week": 10,
   "poll": "Week 10",
   "games": {
-    "401856740": "LSU is favored by 4.5 at home despite ranking below Alabama, and the stat ranks side with the line: LSU's 7th-ranked scoring offense faces Alabama's defense, 45th in points allowed. John holds more points in this one after Alabama's climb from No.10 to No.9.",
-    "401856741": "Ty drafted both teams, so one of his two leaves this game with a loss. Georgia carries more of his points and advanced from No.3 to No.2 this week. Ole Miss's defense, 63rd in points allowed, is the lowest-ranked unit on the field, and it draws Georgia's 4th-ranked scoring offense.",
-    "401856743": "Both defenses rank well above both offenses here; Texas's 53rd-ranked scoring offense, for one, faces a Missouri defense that ranks 23rd in points allowed. Karan owns both teams, and both moved up this week, Texas from No.11 to No.10 and Missouri from No.23 to No.19.",
-    "401856849": "Utah jumped from No.6 to No.3 this week, and Chris now brings an 8-0 team home against Murph's BYU, which rose from No.8 to No.7. The widest gap here is BYU's 44th-ranked scoring offense against a Utah defense that ranks 15th in points allowed.",
-    "401858291": "Miami's top-ranked scoring offense, the best unit on the field, meets Notre Dame's defense, 5th in points allowed. Murph's 8-0 Miami is No.1 and can only hold its place or fall. Mike's Notre Dame, up from No.5 to No.4, is favored by 4.5 at home.",
-    "401858514": "Jim's Ohio State fell from No.2 to No.11 in this week's poll and comes home with 10 points he could still lose. Ohio State's defense, 13th in points allowed, is the best unit on the field and faces Oregon's 38th-ranked scoring offense. John's 5-3 Oregon is worth 2 points from receiving votes and could enter the poll with a road win."
+    "401856740": "LSU is a 6-point favorite at home against a higher-ranked Alabama, and the stat ranks lean the same way. LSU's 9th-ranked scoring offense gets Alabama's defense, 44th in points allowed. John's team just moved up from No.10 to No.9, so he is the owner with more to give back if a loss drops it.",
+    "401856741": "Ty drafted both teams, so his interest is in how far the loser falls in next week's poll. Georgia carries most of his 30 points here after moving up from No.3 to No.2, and Georgia's offense, 4th in scoring, against Ole Miss's 64th-ranked scoring defense is the largest mismatch in the game.",
+    "401856743": "Both teams climbed this week, Missouri from No.23 to No.19 and Texas from No.11 to No.10, and Karan owns both. The defenses are the better units, with Texas's defense, 19th in points allowed, and Missouri's defense, 23rd in points allowed, both ranked well above either offense. Next week's poll will show which of his two climbs lasts.",
+    "401856849": "Utah moved up from No.6 to No.3 this week and brings an 8-0 record home against BYU. Utah's 12th-ranked scoring offense faces BYU's defense, 25th in points allowed. Chris has 20 points on Utah, and Murph has 15 on a BYU team that also climbed this week, from No.8 to No.7.",
+    "401858291": "The No.1 team is a 7-point underdog here, with Notre Dame favored at home over unbeaten Miami. Miami's top-ranked scoring offense meets Notre Dame's 5th-ranked scoring defense, two of the best units in the country. Murph's 25 points on Miami can only go down, and Mike has 20 on a Notre Dame team that just reached No.4.",
+    "401858514": "After falling from No.2 to No.11, Ohio State is home against Oregon, and Jim's 10 points depend on it not sliding further. Ohio State's 13th-ranked scoring defense faces Oregon's offense, 37th in scoring. John's 2 points on Oregon come from also-receiving votes, so an upset could lift Oregon into the poll."
   },
   "teams": {
-    "401856740": "LSU's 7th-ranked scoring offense takes on Alabama's 45th-ranked scoring defense. The other way, Alabama's offense ranks 12th and LSU's defense 16th.",
-    "401856741": "Georgia's 4th-ranked scoring offense takes on Ole Miss's 63rd-ranked scoring defense. The other way, Ole Miss's offense ranks 17th and Georgia's defense 11th.",
+    "401856740": "LSU's 9th-ranked scoring offense takes on Alabama's 44th-ranked scoring defense. The other way, Alabama's offense ranks 13th and LSU's defense 16th.",
+    "401856741": "Georgia's 4th-ranked scoring offense takes on Ole Miss's 64th-ranked scoring defense. The other way, Ole Miss's offense ranks 16th and Georgia's defense 11th.",
     "401856743": "Missouri's 51st-ranked scoring offense takes on Texas's 19th-ranked scoring defense. The other way, Texas's offense ranks 53rd and Missouri's defense 23rd.",
-    "401856849": "BYU's 44th-ranked scoring offense takes on Utah's 15th-ranked scoring defense. The other way, Utah's offense ranks 11th and BYU's defense 25th.",
-    "401858291": "Notre Dame's 5th-ranked scoring offense takes on Miami's 21st-ranked scoring defense. The other way, Miami's offense ranks 1st and Notre Dame's defense 5th.",
-    "401858514": "Ohio State's 19th-ranked scoring offense takes on Oregon's 47th-ranked scoring defense. The other way, Oregon's offense ranks 38th and Ohio State's defense 13th."
+    "401856849": "BYU's 44th-ranked scoring offense takes on Utah's 15th-ranked scoring defense. The other way, Utah's offense ranks 12th and BYU's defense 25th.",
+    "401858291": "Notre Dame's 6th-ranked scoring offense takes on Miami's 21st-ranked scoring defense. The other way, Miami's offense ranks 1st and Notre Dame's defense 5th.",
+    "401858514": "Ohio State's 18th-ranked scoring offense takes on Oregon's 46th-ranked scoring defense. The other way, Oregon's offense ranks 37th and Ohio State's defense 13th."
   }
 }
