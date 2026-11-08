@@ -1,23 +1,23 @@
 {
-  "generated": "2026-11-06T20:43:31.448Z",
+  "generated": "2026-11-08T19:39:31.104Z",
   "model": "claude-opus-5-5",
   "season": 2026,
-  "week": 10,
-  "poll": "Week 10",
+  "week": 11,
+  "poll": "Week 11",
   "games": {
-    "401856740": "LSU is a 6-point favorite at home against a higher-ranked Alabama, and the stat ranks lean the same way. LSU's 9th-ranked scoring offense gets Alabama's defense, 44th in points allowed. John's team just moved up from No.10 to No.9, so he is the owner with more to give back if a loss drops it.",
-    "401856741": "Ty drafted both teams, so his interest is in how far the loser falls in next week's poll. Georgia carries most of his 30 points here after moving up from No.3 to No.2, and Georgia's offense, 4th in scoring, against Ole Miss's 64th-ranked scoring defense is the largest mismatch in the game.",
-    "401856743": "Both teams climbed this week, Missouri from No.23 to No.19 and Texas from No.11 to No.10, and Karan owns both. The defenses are the better units, with Texas's defense, 19th in points allowed, and Missouri's defense, 23rd in points allowed, both ranked well above either offense. Next week's poll will show which of his two climbs lasts.",
-    "401856849": "Utah moved up from No.6 to No.3 this week and brings an 8-0 record home against BYU. Utah's 12th-ranked scoring offense faces BYU's defense, 25th in points allowed. Chris has 20 points on Utah, and Murph has 15 on a BYU team that also climbed this week, from No.8 to No.7.",
-    "401858291": "The No.1 team is a 7-point underdog here, with Notre Dame favored at home over unbeaten Miami. Miami's top-ranked scoring offense meets Notre Dame's 5th-ranked scoring defense, two of the best units in the country. Murph's 25 points on Miami can only go down, and Mike has 20 on a Notre Dame team that just reached No.4.",
-    "401858514": "After falling from No.2 to No.11, Ohio State is home against Oregon, and Jim's 10 points depend on it not sliding further. Ohio State's 13th-ranked scoring defense faces Oregon's offense, 37th in scoring. John's 2 points on Oregon come from also-receiving votes, so an upset could lift Oregon into the poll."
+    "401856863": "Chris drafted both teams, and most of his points sit with Texas Tech, the 8-1 team that rose from No.13 to No.10. Texas Tech's offense, 14th in scoring, meets Oklahoma State's defense, 93rd in points allowed, and Oklahoma State's 3rd-ranked scoring offense faces Texas Tech's 65th-ranked scoring defense.",
+    "401856864": "Utah is 9-0 and climbed from No.3 to No.2 this week, which gives Chris 20 points to protect on the road. Mike's Arizona went from No.24 to No.22, and Arizona's 27th-ranked scoring offense now draws Utah's defense, 15th in points allowed.",
+    "401856883": "Georgia is favored by 13.5 at home, and the stat ranks agree with the line: Georgia's 5th-ranked scoring offense against Missouri's defense, 34th in points allowed. Ty has 25 points on the new No.1, with no higher spot to reach. Karan's Missouri fell out of the poll from No.19 and now sits first among teams receiving votes.",
+    "401856887": "Oklahoma's 108th-ranked scoring offense is the lowest-ranked unit on either side, and it faces Ole Miss's defense, 79th in points allowed. Ty has 5 points left on Ole Miss after it fell from No.12 to No.19. Chris's Oklahoma is 5-4 and unranked, so it carries nothing into this one.",
+    "401856888": "Tennessee jumped from No.16 to No.9 this week, and John now has 15 points tied to it staying high. Texas A&M's 86th-ranked scoring offense meets Tennessee's defense, 10th in points allowed, though the line has Tennessee favored by only 3 on the road. Merc's Texas A&M is 4-5 and unranked.",
+    "401858518": "For Merc, the case for Indiana is Indiana's 4th-ranked scoring defense, the best unit in this game, against USC's offense, 39th in scoring. Mike's USC moved up from No.18 to No.15 and takes 10 points on the road against an 8-1 team."
   },
   "teams": {
-    "401856740": "LSU's 9th-ranked scoring offense takes on Alabama's 44th-ranked scoring defense. The other way, Alabama's offense ranks 13th and LSU's defense 16th.",
-    "401856741": "Georgia's 4th-ranked scoring offense takes on Ole Miss's 64th-ranked scoring defense. The other way, Ole Miss's offense ranks 16th and Georgia's defense 11th.",
-    "401856743": "Missouri's 51st-ranked scoring offense takes on Texas's 19th-ranked scoring defense. The other way, Texas's offense ranks 53rd and Missouri's defense 23rd.",
-    "401856849": "BYU's 44th-ranked scoring offense takes on Utah's 15th-ranked scoring defense. The other way, Utah's offense ranks 12th and BYU's defense 25th.",
-    "401858291": "Notre Dame's 6th-ranked scoring offense takes on Miami's 21st-ranked scoring defense. The other way, Miami's offense ranks 1st and Notre Dame's defense 5th.",
-    "401858514": "Ohio State's 18th-ranked scoring offense takes on Oregon's 46th-ranked scoring defense. The other way, Oregon's offense ranks 37th and Ohio State's defense 13th."
+    "401856863": "Texas Tech's 14th-ranked scoring offense takes on Oklahoma State's 93rd-ranked scoring defense. The other way, Oklahoma State's offense ranks 3rd and Texas Tech's defense 65th.",
+    "401856864": "Utah's 13th-ranked scoring offense takes on Arizona's 33rd-ranked scoring defense. The other way, Arizona's offense ranks 27th and Utah's defense 15th.",
+    "401856883": "Missouri's 53rd-ranked scoring offense takes on Georgia's 7th-ranked scoring defense. The other way, Georgia's offense ranks 5th and Missouri's defense 34th.",
+    "401856887": "Oklahoma's 108th-ranked scoring offense takes on Ole Miss's 79th-ranked scoring defense. The other way, Ole Miss's offense ranks 30th and Oklahoma's defense 23rd.",
+    "401856888": "Texas A&M's 86th-ranked scoring offense takes on Tennessee's 10th-ranked scoring defense. The other way, Tennessee's offense ranks 39th and Texas A&M's defense 22nd.",
+    "401858518": "USC's 39th-ranked scoring offense takes on Indiana's 4th-ranked scoring defense. The other way, Indiana's offense ranks 39th and USC's defense 66th."
   }
 }
