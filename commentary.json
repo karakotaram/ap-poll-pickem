@@ -1,23 +1,23 @@
 {
-  "generated": "2026-11-08T19:39:31.104Z",
+  "generated": "2026-11-13T21:13:12.565Z",
   "model": "claude-opus-5-5",
   "season": 2026,
   "week": 11,
   "poll": "Week 11",
   "games": {
-    "401856863": "Chris drafted both teams, and most of his points sit with Texas Tech, the 8-1 team that rose from No.13 to No.10. Texas Tech's offense, 14th in scoring, meets Oklahoma State's defense, 93rd in points allowed, and Oklahoma State's 3rd-ranked scoring offense faces Texas Tech's 65th-ranked scoring defense.",
-    "401856864": "Utah is 9-0 and climbed from No.3 to No.2 this week, which gives Chris 20 points to protect on the road. Mike's Arizona went from No.24 to No.22, and Arizona's 27th-ranked scoring offense now draws Utah's defense, 15th in points allowed.",
-    "401856883": "Georgia is favored by 13.5 at home, and the stat ranks agree with the line: Georgia's 5th-ranked scoring offense against Missouri's defense, 34th in points allowed. Ty has 25 points on the new No.1, with no higher spot to reach. Karan's Missouri fell out of the poll from No.19 and now sits first among teams receiving votes.",
-    "401856887": "Oklahoma's 108th-ranked scoring offense is the lowest-ranked unit on either side, and it faces Ole Miss's defense, 79th in points allowed. Ty has 5 points left on Ole Miss after it fell from No.12 to No.19. Chris's Oklahoma is 5-4 and unranked, so it carries nothing into this one.",
-    "401856888": "Tennessee jumped from No.16 to No.9 this week, and John now has 15 points tied to it staying high. Texas A&M's 86th-ranked scoring offense meets Tennessee's defense, 10th in points allowed, though the line has Tennessee favored by only 3 on the road. Merc's Texas A&M is 4-5 and unranked.",
-    "401858518": "For Merc, the case for Indiana is Indiana's 4th-ranked scoring defense, the best unit in this game, against USC's offense, 39th in scoring. Mike's USC moved up from No.18 to No.15 and takes 10 points on the road against an 8-1 team."
+    "401856864": "Unbeaten at 9-0, Utah takes a No.2 ranking it gained only this week on the road to Arizona. Chris has 20 points on Utah, and Mike has 3 on Arizona, which also rose, from No.24 to No.22. Utah's offense, 14th in scoring, meets Arizona's 33rd-ranked scoring defense.",
+    "401856883": "Georgia reached No.1 this week, so Ty's 25 points have no higher spot to move to. Georgia's offense, 5th in scoring, meets Missouri's defense, 34th in points allowed. Karan's Missouri fell out of the poll from No.19 but still carries 2 points from the also-receiving-votes list.",
+    "401856885": "Karan owns both teams, so his only interest is which one the poll treats better afterward. LSU is favored by 4 at home even though Texas is No.8 and LSU just fell from No.15 to No.24. The line leans toward the stat ranks, with LSU's offense, 18th in scoring, well ahead of Texas's offense, 48th in scoring.",
+    "401856887": "Oklahoma is unranked at 5-4 and still favored by 1.5 at home over Ole Miss, which slid from No.12 to No.19 this week. The two strongest units meet when Ole Miss's offense, 30th in scoring, faces Oklahoma's 24th-ranked scoring defense. Ty stands to lose the 5 that Ole Miss carries, and Chris's Oklahoma counts only if it enters the poll.",
+    "401856888": "Texas A&M's 86th-ranked scoring offense faces a Tennessee defense that ranks 10th in points allowed. John is the only owner here with points riding on the result: Tennessee jumped from No.16 to No.9 this week and is worth 15 to him. Merc's Texas A&M is 4-5 and unranked.",
+    "401858518": "Merc has 20 points on Indiana, which is 8-1 and favored by 9.5 at home. The strongest unit on the field is Indiana's 4th-ranked scoring defense, and it gets USC's 39th-ranked scoring offense. Mike's USC arrives after climbing from No.18 to No.15."
   },
   "teams": {
-    "401856863": "Texas Tech's 14th-ranked scoring offense takes on Oklahoma State's 93rd-ranked scoring defense. The other way, Oklahoma State's offense ranks 3rd and Texas Tech's defense 65th.",
-    "401856864": "Utah's 13th-ranked scoring offense takes on Arizona's 33rd-ranked scoring defense. The other way, Arizona's offense ranks 27th and Utah's defense 15th.",
-    "401856883": "Missouri's 53rd-ranked scoring offense takes on Georgia's 7th-ranked scoring defense. The other way, Georgia's offense ranks 5th and Missouri's defense 34th.",
-    "401856887": "Oklahoma's 108th-ranked scoring offense takes on Ole Miss's 79th-ranked scoring defense. The other way, Ole Miss's offense ranks 30th and Oklahoma's defense 23rd.",
-    "401856888": "Texas A&M's 86th-ranked scoring offense takes on Tennessee's 10th-ranked scoring defense. The other way, Tennessee's offense ranks 39th and Texas A&M's defense 22nd.",
-    "401858518": "USC's 39th-ranked scoring offense takes on Indiana's 4th-ranked scoring defense. The other way, Indiana's offense ranks 39th and USC's defense 66th."
+    "401856864": "Utah's 14th-ranked scoring offense takes on Arizona's 33rd-ranked scoring defense. The other way, Arizona's offense ranks 27th and Utah's defense 14th.",
+    "401856883": "Missouri's 54th-ranked scoring offense takes on Georgia's 7th-ranked scoring defense. The other way, Georgia's offense ranks 5th and Missouri's defense 34th.",
+    "401856885": "Texas's 48th-ranked scoring offense takes on LSU's 19th-ranked scoring defense. The other way, LSU's offense ranks 18th and Texas's defense 18th.",
+    "401856887": "Oklahoma's 107th-ranked scoring offense takes on Ole Miss's 81st-ranked scoring defense. The other way, Ole Miss's offense ranks 30th and Oklahoma's defense 24th.",
+    "401856888": "Texas A&M's 86th-ranked scoring offense takes on Tennessee's 10th-ranked scoring defense. The other way, Tennessee's offense ranks 39th and Texas A&M's defense 21st.",
+    "401858518": "USC's 39th-ranked scoring offense takes on Indiana's 4th-ranked scoring defense. The other way, Indiana's offense ranks 39th and USC's defense 67th."
   }
 }
